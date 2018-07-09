@@ -2,6 +2,8 @@
 
 ![airflow-gke-deployed](images/airflow-gke.png "Airflow GKE Helm")
 
+Installation instructions:
+
 ```bash
 git clone https://github.com/EamonKeane/airflow-GKE-k8sExecutor-helm.git
 cd airflow-GKE-k8sExecutor-helm
