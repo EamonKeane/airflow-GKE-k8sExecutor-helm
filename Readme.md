@@ -37,6 +37,6 @@ kubectl port-forward $POD_NAME 8080:8080
 ## Tidying up
 The easiest way to tidy-up is to delete the project and make a new one if re-deploying, however there are steps in tidying-up.sh to delete the individual resources.
 
-## Contributions
+## Input
 This is a work in progress and the install script is a bit brittle. One area where I could use some input is the best way to set up storage for DAGS on GKE. Persistent disks can only be attached to one
-node at a time (hence this example only works on one node). I see some options such as gcsfuse but am not sure if they would work with the k8s executor worker definitions.
+node at a time (hence this example only works on one node). I see some options such as gcsfuse but am not sure if they would work with the k8s executor worker definitions. Cloud Filestore would work but this is not released yet (beta due soon apparently). https://github.com/kubernetes-sigs/gcp-filestore-csi-driver
