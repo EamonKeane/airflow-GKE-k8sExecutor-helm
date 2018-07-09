@@ -1,5 +1,7 @@
 ## Deploy an airflow kubernetes cluster with CloudSql and GKE in under 10 minutes
 
+![airflow-gke-deployed](images/airflow-gke.png "Airflow GKE Helm")
+
 ```bash
 git clone https://github.com/EamonKeane/airflow-GKE-k8sExecutor-helm.git
 cd airflow-GKE-k8sExecutor-helm
@@ -26,6 +28,8 @@ helm upgrade \
     airflow
 ```
 
+You can change airflow/airflow.cfg and re-run the above `helm upgrade --install` command to redeploy the changes. This takes approximately 30 seconds.
+
 ## To view the dashboard UI:
 
 ```bash
@@ -33,6 +37,8 @@ export POD_NAME=$(kubectl get pods --namespace default -l "app=airflow,tier=web"
 echo "Visit http://127.0.0.1:8080 to use your application"
 kubectl port-forward $POD_NAME 8080:8080
 ```
+
+To install an ingress with nginx-ingress use `--set ingress.enabled=true`. There is no authentication by default, so please add your authentication method to `airflow/airflow.cfg`.
 
 ## Tidying up
 The easiest way to tidy-up is to delete the project and make a new one if re-deploying, however there are steps in tidying-up.sh to delete the individual resources.

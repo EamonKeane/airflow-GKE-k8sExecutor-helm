@@ -5,7 +5,7 @@ namespace: default
 google: 
   project: 
   region: 
-  databaseInstance: icabbi-airflow23
+  databaseInstance: airflow
   databaseName: airflow
 
 dagVolume:
@@ -27,7 +27,7 @@ dagVolume:
 #     --from-literal=sql_alchemy_conn=$SQL_ALCHEMY_CONN \
 #     --from-file=$CLOUDSQL_SERVICE_ACCOUNT.json \
 #     --from-file=kubeconfig=$KUBERNETES_KUBECONFIG_SECRET \
-#     --from-literal=gcs-log-folder=gs://$GOOGLE_LOG_STORAGE_BUCKET/logs
+#     --from-literal=gcs-log-folder=gs://$GOOGLE_LOG_STORAGE_BUCKET/
 
 secrets:
   name: airflow
@@ -57,8 +57,8 @@ airflowCfg:
     # This is named {{ .Values.webScheduler.airflowCfgConfigMap }}
     airflowConfigmap: airflow-configmap
     dagsVolumeClaim: airflow-dags
-    workerContainerRepository: quay.io/eamonkeane/icabbi-airflow-helm
-    workerContainerTag: "4.0"
+    workerContainerRepository: quay.io/eamonkeane/airflow-k8s
+    workerContainerTag: "0.2"
     namespace: default
     # Add a list of secrets in the form of ENV_VARIABLE=KUBERNETES_SECRET_NAME=KUBERNETES_SECRET_KEY
     # This is injected into the environment of the Kubernetes Executor workers
@@ -90,8 +90,8 @@ webScheduler:
     args: "airflow initdb && alembic upgrade heads"
   installWebServer: true
   installScheduler: true
-  image: quay.io/eamonkeane/icabbi-airflow-helm
-  tag: "4.0"
+  image: quay.io/eamonkeane/airflow-k8s
+  tag: ":0.2"
   dagsVolumeClaim: airflow-dags
   dagsMountPath: /usr/local/airflow/dags
   dagsVolumeClaimSubPath:
