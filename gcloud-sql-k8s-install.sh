@@ -73,22 +73,22 @@ STORAGE_ROLE='roles/storage.admin'
 
 #### AIRFLOW CLUSTER OPTIONS ####
 # AIRFLOW options for both leader and worker nodes
-CLUSTER_NAME="icabbi-airflow"
+CLUSTER_NAME="airflow"
 CLUSTER_VERSION="1.10.5-gke.0"
 IMAGE_TYPE=COS
 SCOPES="gke-default"
 KUBERNETES_KUBECONFIG_SECRET=kubeconfig
 
 # Airflow leader pool options
-KUBERNETES_MACHINE_LABELS="icabbi=airflow"
-MASTER_KUBERNETES_NODE_LABELS="icabbi=airflow,pool=webScheduler"
+KUBERNETES_MACHINE_LABELS="app=airflow"
+MASTER_KUBERNETES_NODE_LABELS="app=airflow,pool=webScheduler"
 LEADER_POOL_NUM_NODES=1
 MACHINE_TYPE="n1-standard-2"
 
 # Airflow worker pool options
 CREATE_WORKER_POOL=FALSE
 WORKER_NODE_POOL_NAME="airflow-workers"
-WORKER_KUBERNETES_NODE_LABELS="icabbi=airflow_workers,pool=preemptible"
+WORKER_KUBERNETES_NODE_LABELS="airflow=airflow_workers,pool=preemptible"
 WORKER_NODE_MACHINE_TYPE="n1-standard-4"
 WORKER_POOL_NUM_NODES=0
 WORKER_POOL_MAX_NODES=6 
