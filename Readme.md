@@ -48,3 +48,12 @@ The easiest way to tidy-up is to delete the project and make a new one if re-dep
 ## Input
 This is a work in progress and the install script is a bit brittle. One area where I could use some input is the best way to set up storage for DAGS on GKE. Persistent disks can only be attached to one
 node at a time (hence this example only works on one node). I see some options such as gcsfuse but am not sure if they would work with the k8s executor worker definitions. Cloud Filestore would work but this is not released yet (beta due soon apparently). https://github.com/kubernetes-sigs/gcp-filestore-csi-driver
+
+## Helm chart layout
+There are a few elements to the chart:
+* This chart only focuses on the kubernetes executor and is tailored to run on GKE, but
+with some effort could be modified to run on premise or EKS/AKS.
+* A persistent disk is used for dags. You need to populate this separately using e.g. Jenkins.
+* Pre-install hooks add the airflow-RBAC account, dags PV, dags PVC and CloudSQL service. If the step fails at this point, you will need to remove everything before running helm again. See `tidying-up.sh` for details.
+* Pre-install and pre-upgrade hook to run the alembic migrations
+* Separate, templated airflow.cfg a change of which triggers a redeployment of both the web scheduler and the web server. This is due to the name of the configmap being appended with the current seconds (-{{ .Release.Time.Seconds }}) so a new configmap gets deployed each time. You may want to delete old configmaps from time to time.

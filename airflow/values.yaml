@@ -91,7 +91,7 @@ webScheduler:
   installWebServer: true
   installScheduler: true
   image: quay.io/eamonkeane/airflow-k8s
-  tag: ":0.2"
+  tag: "0.2"
   dagsVolumeClaim: airflow-dags
   dagsMountPath: /usr/local/airflow/dags
   dagsVolumeClaimSubPath:
