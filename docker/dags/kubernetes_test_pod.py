@@ -35,9 +35,9 @@ volume_config = {
 
 volume = Volume(name='airflow-dags', configs=volume_config)
 
-passing = KubernetesPodOperator(namespace='airflow4',
+passing = KubernetesPodOperator(namespace='default',
                           image="python:3.6",
-                          cmds=["python", "dags/test-python.py"],
+                          cmds=["python", "dags/test_python.py"],
                           labels={"foo": "bar"},
                           name="passing-test",
                           task_id="passing-task",
