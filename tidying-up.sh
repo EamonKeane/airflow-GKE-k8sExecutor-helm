@@ -1,12 +1,12 @@
-PROJECT=icabbi-202810
-ACCOUNT=eamon@logistio.ie
+PROJECT=
+ACCOUNT=
 GCE_ZONE="europe-west2-c"
 
 GCE_LOG_BUCKET_NAME=
 
-CLUSTER_NAME="icabbi-airflow"
+CLUSTER_NAME="airflow"
 
-DATABASE_INSTANCE_NAME="icabbi-airflow21"
+DATABASE_INSTANCE_NAME="airflow"
 
 DAGS_DISK_NAME="airflow-dags"
 
