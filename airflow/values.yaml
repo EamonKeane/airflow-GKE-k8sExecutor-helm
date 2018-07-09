@@ -1,0 +1,122 @@
+# Airflow RBAC service account is installed here, 
+# so ensure that this is changed if using a different namespace
+namespace: default
+
+google: 
+  project: 
+  region: 
+  databaseInstance: icabbi-airflow23
+  databaseName: airflow
+
+dagVolume:
+  # gcloud compute disks create $DAGS_DISK_NAME \
+  # --description="Used to sync github with dags" \
+  # --size=$DAGS_DISK_SIZE \
+  # --type=$DAGS_DISK_TYPE \
+  # --zone=$GCE_ZONE \
+  # --project=$PROJECT
+  gcePersistentDisk: airflow-dags
+  # This must be the same of smaller than the size of the PV you created
+  size: 10Gi
+  
+
+#### If not using the install script, create the secret below using the following form:
+# kubectl create secret generic airflow \
+#     --from-literal=fernet-key=$FERNET_KEY \
+#     --from-literal=airflow-postgres-instance=$PROJECT:$REGION:$DATABASE_INSTANCE_NAME:$AIRFLOW_DATABASE_NAME \
+#     --from-literal=sql_alchemy_conn=$SQL_ALCHEMY_CONN \
+#     --from-file=$CLOUDSQL_SERVICE_ACCOUNT.json \
+#     --from-file=kubeconfig=$KUBERNETES_KUBECONFIG_SECRET \
+#     --from-literal=gcs-log-folder=gs://$GOOGLE_LOG_STORAGE_BUCKET/logs
+
+secrets:
+  name: airflow
+  key:
+    # Generate from the cryptography package
+    # FERNET_KEY=$(python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())")
+    fernetKey: fernet-key
+    # In the format: 
+    # postgresql+psycopg2://$POSTGRES_USER:$POSTGRES_PASSWORD@$POSTGRES_HOST:$POSTGRES_PORT/$POSTGRES_DB
+    sqlAlchemyConn: sql_alchemy_conn
+    # Kubeconfig mounted on the scheduler only. Needed for launching pods 
+    # with the Kubernetes Pod Operator. This needs to be in the legacy certificate format
+    # (enable legacy-authorisation if using GKE, and enable the setting on the client)
+    kubeconfig: kubeconfig
+    cloudSqlCredentials: airflowcloudsql.json
+    gcsLogFolder: "gcs-log-folder"
+
+airflowCfg:
+  core:
+    dagsFolder: /usr/local/airflow/dags
+    remoteLogConnId: google_conn
+  kubernetes:
+    workerServiceAccountName: airflow-rbac
+    # This should be the same as the webScheduler.airflowCfgConfigMap unless 
+    # you are creating a second configmap. 
+    # There is currently only one templated (airflow-cfg-configmap.yaml). 
+    # This is named {{ .Values.webScheduler.airflowCfgConfigMap }}
+    airflowConfigmap: airflow-configmap
+    dagsVolumeClaim: airflow-dags
+    workerContainerRepository: quay.io/eamonkeane/icabbi-airflow-helm
+    workerContainerTag: "4.0"
+    namespace: default
+    # Add a list of secrets in the form of ENV_VARIABLE=KUBERNETES_SECRET_NAME=KUBERNETES_SECRET_KEY
+    # This is injected into the environment of the Kubernetes Executor workers
+  kubernetesSecrets: |-
+    SQL_ALCHEMY_CONN=airflow=sql_alchemy_conn
+    # Add a list of key value pairs for node labels you want the Kubernetes Exeuctor workers
+    # To be scheduled on. You can do this by using the kubectl label nodes
+    # https://kubernetes.io/docs/concepts/configuration/assign-pod-node/
+  kubernetesNodeSelectors: |-
+  # If you have created a second pool for workers, put the node labels here
+    # airflow=airflow_workers
+    # pool=preemptible
+
+# This section contains values for the pre-install hook, the web and the scheduler deployments
+webScheduler:
+  web:
+    name: web
+    replicaCount: 1
+    service:
+      type: ClusterIP
+      port: 8080
+  scheduler:
+    name: scheduler
+    serviceAccountName: airflow-rbac
+    kubeconfigMountPath: /root/airflow/kubeconfig
+  preHook:
+    # This performs the migrations and runs before any new deployment or upgrade
+    install: true
+    args: "airflow initdb && alembic upgrade heads"
+  installWebServer: true
+  installScheduler: true
+  image: quay.io/eamonkeane/icabbi-airflow-helm
+  tag: "4.0"
+  dagsVolumeClaim: airflow-dags
+  dagsMountPath: /usr/local/airflow/dags
+  dagsVolumeClaimSubPath:
+  airflowCfgPath: /usr/local/airflow/airflow.cfg
+  airflowCfgConfigMap: airflow-configmap
+
+ingress:
+  enabled: false
+  annotations:
+    # Install nginx-ingress to have this annotation create an ingress
+    # https://hub.kubeapps.com/charts/stable/nginx-ingress
+    kubernetes.io/ingress.class: "nginx"
+    # Use cert-manager to automatically provision acme certs
+    # https://hub.kubeapps.com/charts/stable/cert-manager
+    kubernetes.io/tls-acme: "true"
+    # This ensures that a user gets directed to the same webserver pod if using multiple
+    # webserver pods during a session.
+    # https://github.com/kubernetes/ingress-nginx/tree/master/docs/examples/affinity/cookie
+    nginx.ingress.kubernetes.io/affinity: "cookie"
+    nginx.ingress.kubernetes.io/session-cookie-name: "route"
+    nginx.ingress.kubernetes.io/session-cookie-hash: "sha1"
+  path: ""
+  hosts: 
+    - airflow.mysite.io
+  tls:
+  - hosts:
+    - airflow.mysite.io
+    secretName: airflow.mysite.io

@@ -1,0 +1,55 @@
+{{- if .Values.webScheduler.preHook.install -}}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: "{{ template "airflow.fullname" . }}-prehook-{{ .Release.Time.Seconds }}"
+  annotations:
+    "helm.sh/hook": pre-install,pre-upgrade
+    "helm.sh/hook-weight": "-5"
+    "helm.sh/hook-delete-policy": hook-succeeded
+  labels:
+    app: {{ template "airflow.name" . }}
+    chart: {{ template "airflow.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  backoffLimit: 1
+  template:
+    spec:
+      restartPolicy: Never
+      volumes:
+        - name: "{{ .Values.webScheduler.airflowCfgConfigMap }}"
+          configMap:
+            name: "{{ .Values.webScheduler.airflowCfgConfigMap }}-{{ .Release.Time.Seconds }}"
+      initContainers:
+      - name: check-db-ready
+        image: postgres:9.6.5
+        command: ['sh', '-c', 
+          'until pg_isready -h "{{ template "airflow.postgresql.fullname" . }}" -p 5432; 
+          do echo waiting for database; sleep 2; done;']
+      containers:
+       - name: "pre-hook-migration"
+         image: {{ .Values.webScheduler.image }}:{{ .Values.webScheduler.tag }}
+         imagePullPolicy: IfNotPresent
+         volumeMounts:
+          - name: "{{ .Values.webScheduler.airflowCfgConfigMap }}"
+            mountPath: {{ .Values.webScheduler.airflowCfgPath }}
+            subPath: airflow.cfg
+         env:
+           - name: SQL_ALCHEMY_CONN
+             valueFrom:
+               secretKeyRef:
+                 name: {{ .Values.secrets.name }}
+                 key: {{ .Values.secrets.key.sqlAlchemyConn }}
+           - name: AIRFLOW__CORE__FERNET_KEY
+             valueFrom:
+               secretKeyRef:
+                  name: {{ .Values.secrets.name }}
+                  key: {{ .Values.secrets.key.fernetKey }}
+           - name: AIRFLOW__CORE__REMOTE_BASE_LOG_FOLDER
+             valueFrom:
+               secretKeyRef:
+                  name: {{ .Values.secrets.name }}
+                  key: {{ .Values.secrets.key.gcsLogFolder }}
+         args: [{{ .Values.webScheduler.preHook.args }}]
+{{- end -}}

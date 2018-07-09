@@ -1,0 +1,21 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name: "{{ template "airflow.postgresql.fullname" . }}"
+  labels:
+    app: {{ template "airflow.name" . }}
+    chart: {{ template "airflow.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+  annotations:
+    "helm.sh/hook": pre-install
+    "helm.sh/hook-weight": "-15"
+spec:
+  type: ClusterIP
+  selector:
+    app: {{ template "airflow.name" . }}
+    tier: "{{ template "airflow.postgresql.fullname" . }}"
+  ports:
+    - name: "{{ template "airflow.postgresql.fullname" . }}"
+      port: 5432
+      protocol: TCP

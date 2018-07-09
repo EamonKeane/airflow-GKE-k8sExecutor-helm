@@ -1,0 +1,45 @@
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: "{{ template "airflow.postgresql.fullname" . }}"
+  annotations:
+    "helm.sh/hook": pre-install
+    "helm.sh/hook-weight": "-15"
+  labels:
+    app: {{ template "airflow.name" . }}
+    chart: {{ template "airflow.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  selector:
+    matchLabels:
+      app: {{ template "airflow.name" . }}
+      tier: "{{ template "airflow.postgresql.fullname" . }}"
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: {{ template "airflow.name" . }}
+        tier: "{{ template "airflow.postgresql.fullname" . }}"
+    spec:
+      restartPolicy: Always
+      containers:
+        - name: cloudsql-proxy
+          image: gcr.io/cloudsql-docker/gce-proxy:1.11
+          command: ["/cloud_sql_proxy", "--dir=/cloudsql",
+                    "-instances={{ .Values.google.project }}:{{ .Values.google.region }}:{{ .Values.google.databaseInstance }}:{{ .Values.google.databaseName }}=tcp:0.0.0.0:5432",
+                    "-credential_file=/secrets/cloudsql/{{ .Values.secrets.key.cloudSqlCredentials }}"]
+          ports:
+            - name: postgres
+              containerPort: 5432
+          volumeMounts:
+            - name: airflow-sql-credentials
+              mountPath: /secrets/cloudsql
+              readOnly: true
+      volumes:
+        - name: airflow-sql-credentials
+          secret:
+            secretName: {{ .Values.secrets.name }}
+            items:
+            - key: {{ .Values.secrets.key.cloudSqlCredentials }}
+              path: {{ .Values.secrets.key.cloudSqlCredentials }}

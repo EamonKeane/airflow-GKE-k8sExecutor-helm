@@ -1,0 +1,24 @@
+
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ .Values.airflowCfg.kubernetes.workerServiceAccountName }}
+  annotations:
+    "helm.sh/hook": pre-install
+    "helm.sh/hook-weight": "-25"
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1beta1
+metadata:
+  name: airflow-clusterrolebinding
+  annotations:
+    "helm.sh/hook": pre-install
+    "helm.sh/hook-weight": "-25"
+subjects:
+- kind: ServiceAccount
+  name: {{ .Values.airflowCfg.kubernetes.workerServiceAccountName }}
+  namespace: {{ .Values.namespace }}
+roleRef:
+  kind: ClusterRole
+  name: cluster-admin
+  apiGroup: ""

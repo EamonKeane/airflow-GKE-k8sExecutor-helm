@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  annotations:
+    "helm.sh/hook": pre-install
+    "helm.sh/hook-weight": "-40"
+  name: {{ .Values.dagVolume.gcePersistentDisk }}
+spec:
+  capacity:
+    storage: {{ .Values.dagVolume.size }}
+  accessModes:
+  - ReadOnlyMany
+  - ReadWriteOnce
+  gcePersistentDisk:
+    pdName: {{ .Values.dagVolume.gcePersistentDisk }}
+    fsType: ext4
