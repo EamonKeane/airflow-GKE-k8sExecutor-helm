@@ -70,6 +70,8 @@ airflowCfg:
     # This is injected into the environment of the Kubernetes Executor workers
   kubernetesSecrets: |-
     SQL_ALCHEMY_CONN=airflow=sql_alchemy_conn
+    AIRFLOW__CORE__FERNET_KEY=airflow=fernet-key
+    AIRFLOW__CORE__REMOTE_BASE_LOG_FOLDER=airflow=gcs-log-folder
     # Add a list of key value pairs for node labels you want the Kubernetes Exeuctor workers
     # To be scheduled on. You can do this by using the kubectl label nodes
     # https://kubernetes.io/docs/concepts/configuration/assign-pod-node/

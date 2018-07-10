@@ -57,3 +57,10 @@ with some effort could be modified to run on premise or EKS/AKS.
 * Pre-install hooks add the airflow-RBAC account, dags PV, dags PVC and CloudSQL service. If the step fails at this point, you will need to remove everything before running helm again. See `tidying-up.sh` for details.
 * Pre-install and pre-upgrade hook to run the alembic migrations
 * Separate, templated airflow.cfg a change of which triggers a redeployment of both the web scheduler and the web server. This is due to the name of the configmap being appended with the current seconds (-{{ .Release.Time.Seconds }}) so a new configmap gets deployed each time. You may want to delete old configmaps from time to time.
+
+## Debugging
+When debugging it is useful to set the executor to LocalExecutor. This can be done by the following:
+```bash
+--set airflowCfg.core.executor=LocalExecutor
+```
+This way you can see all the logs on one pod and can still test kubernetes using the Pod Operator (this requires a kubeconfig to be mounted on the scheduler pod, which is part of the setup).
