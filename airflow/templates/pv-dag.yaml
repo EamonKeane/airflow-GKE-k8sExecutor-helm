@@ -1,16 +1,19 @@
+{{- if .Values.dagVolume.installPV -}}
 apiVersion: v1
 kind: PersistentVolume
 metadata:
   annotations:
     "helm.sh/hook": pre-install
     "helm.sh/hook-weight": "-40"
-  name: {{ .Values.dagVolume.gcePersistentDisk }}
+  name: {{ .Values.webScheduler.dagsVolumeClaim}}
 spec:
   capacity:
     storage: {{ .Values.dagVolume.size }}
+  persistentVolumeReclaimPolicy: Retain
   accessModes:
   - ReadOnlyMany
   - ReadWriteOnce
   gcePersistentDisk:
     pdName: {{ .Values.dagVolume.gcePersistentDisk }}
     fsType: ext4
+{{- end -}}

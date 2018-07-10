@@ -1,4 +1,5 @@
 
+{{- if .Values.createWorkerRBAC -}}
 apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -22,3 +23,4 @@ roleRef:
   kind: ClusterRole
   name: cluster-admin
   apiGroup: ""
+{{- end -}}

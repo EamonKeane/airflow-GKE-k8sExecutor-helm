@@ -18,6 +18,7 @@ PROJECT=
 ACCOUNT=
 REGION=
 GCE_ZONE=
+DATABASE_INSTANCE_NAME=
 
 for i in "$@"
 do
@@ -33,6 +34,9 @@ case ${i} in
     ;;
     -gce_zone=*|--gce_zone=*)
     GCE_ZONE="${i#*=}"
+    ;;
+    -database_instance_name=*|--database_instance_name=*)
+    DATABASE_INSTANCE_NAME="${i#*=}"
     ;;
 esac
 done
@@ -50,7 +54,6 @@ DAGS_DISK_SIZE=10GB
 DAGS_DISK_TYPE=pd-ssd
 
 #### DATABASE OPTIONS ####
-DATABASE_INSTANCE_NAME="airflow"
 ACTIVATION_POLICY=always
 AVAILABILITY_TYPE=zonal
 CPU=1
@@ -76,7 +79,7 @@ STORAGE_ROLE='roles/storage.admin'
 CLUSTER_NAME="airflow"
 CLUSTER_VERSION="1.10.5-gke.0"
 IMAGE_TYPE=COS
-SCOPES="gke-default"
+SCOPES="cloud-platform"
 KUBERNETES_KUBECONFIG_SECRET=kubeconfig
 
 # Airflow leader pool options
@@ -96,6 +99,7 @@ WORKER_POOL_MIN_NODES=0
 
 # Some of the kubernetes options require use of beta features.
 gcloud config set container/use_v1_api false
+
 
 ### Create the postgres database ###
 ### https://cloud.google.com/sdk/gcloud/reference/sql/instances/create
@@ -165,6 +169,8 @@ gcloud container node-pools create $WORKER_NODE_POOL_NAME \
     --account=$ACCOUNT \
     --project=$PROJECT
 fi
+
+
 ### Create service account for cloudsql-proxy to connect to and create kubernetes secret 
 ### https://cloud.google.com/sdk/gcloud/reference/iam/service-accounts/create
 gcloud iam service-accounts create $CLOUDSQL_SERVICE_ACCOUNT \
@@ -184,6 +190,7 @@ gcloud projects add-iam-policy-binding $PROJECT \
 
 gcloud iam service-accounts keys create $PWD/$CLOUDSQL_SERVICE_ACCOUNT.json \
     --iam-account $CLOUDSQL_SERVICE_ACCOUNT@$PROJECT.iam.gserviceaccount.com
+
 
 ### Create kubeconfig secret needed for the Kubernetes Scheduler to launch pods for the kubernetes executor
 ### The Kubernetes executor (to my knowledge) uses the mounted RBAC account to 
@@ -212,7 +219,7 @@ gcloud sql users create $AIRFLOW_DATABASE_USER \
 #     --host "ignore-this-only-for-mysql" \
 #     --instance $DATABASE_INSTANCE_NAME \
 #     --project $PROJECT \
-#     --password $AIRFLOW_DATABASE_POSTGRES_USER_PASSWORD
+#     --password $AIRFLOW_DATABASE_USER_PASSWORD
 
 gcloud sql databases create $AIRFLOW_DATABASE_NAME \
     --instance=$DATABASE_INSTANCE_NAME \
@@ -232,7 +239,7 @@ kubectl create secret generic airflow \
     --from-literal=fernet-key=$FERNET_KEY \
     --from-literal=airflow-postgres-instance=$PROJECT:$REGION:$DATABASE_INSTANCE_NAME:$AIRFLOW_DATABASE_NAME \
     --from-literal=sql_alchemy_conn=$SQL_ALCHEMY_CONN \
-    --from-file=$CLOUDSQL_SERVICE_ACCOUNT.json \
+    --from-file=$CLOUDSQL_SERVICE_ACCOUNT.json=$CLOUDSQL_SERVICE_ACCOUNT.json \
     --from-file=kubeconfig=$KUBERNETES_KUBECONFIG_SECRET \
     --from-literal=gcs-log-folder=gs://$GOOGLE_LOG_STORAGE_BUCKET
 
@@ -242,7 +249,7 @@ kubectl apply -f kubernetes-yaml/
 helm init --service-account tiller
 
 # Make the storage bucket
-gsutil mb -p $PROJECT -c regional -l $REGION gs://$GOOGLE_LOG_STORAGE_BUCKET
+gsutil mb -p $PROJECT -c regional -l $REGION gs://$GOOGLE_LOG_STORAGE_BUCKET/
 
 ### Remove the cloudsql service account and the kubeconfig file. They are persisted in the 
 ### kubernetes secret if you need to retrieve it. Run 'kubedecode airflow default' to decode.
@@ -256,3 +263,4 @@ gcloud compute disks create $DAGS_DISK_NAME \
   --type=$DAGS_DISK_TYPE \
   --zone=$GCE_ZONE \
   --project=$PROJECT
+

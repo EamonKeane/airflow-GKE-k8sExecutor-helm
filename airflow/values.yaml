@@ -8,6 +8,10 @@ google:
   databaseInstance: airflow
   databaseName: airflow
 
+createWorkerRBAC: true
+installPostgresService: true
+installCloudsqlProxyDeploy: true
+
 dagVolume:
   # gcloud compute disks create $DAGS_DISK_NAME \
   # --description="Used to sync github with dags" \
@@ -18,6 +22,8 @@ dagVolume:
   gcePersistentDisk: airflow-dags
   # This must be the same of smaller than the size of the PV you created
   size: 10Gi
+  installPV: true
+  installPVC: true
   
 
 #### If not using the install script, create the secret below using the following form:
@@ -25,7 +31,7 @@ dagVolume:
 #     --from-literal=fernet-key=$FERNET_KEY \
 #     --from-literal=airflow-postgres-instance=$PROJECT:$REGION:$DATABASE_INSTANCE_NAME:$AIRFLOW_DATABASE_NAME \
 #     --from-literal=sql_alchemy_conn=$SQL_ALCHEMY_CONN \
-#     --from-file=$CLOUDSQL_SERVICE_ACCOUNT.json \
+#     --from-file=$CLOUDSQL_SERVICE_ACCOUNT.json=$CLOUDSQL_SERVICE_ACCOUNT.json \
 #     --from-file=kubeconfig=$KUBERNETES_KUBECONFIG_SECRET \
 #     --from-literal=gcs-log-folder=gs://$GOOGLE_LOG_STORAGE_BUCKET/
 
@@ -49,6 +55,7 @@ airflowCfg:
   core:
     dagsFolder: /usr/local/airflow/dags
     remoteLogConnId: google_conn
+    executor: KubernetesExecutor
   kubernetes:
     workerServiceAccountName: airflow-rbac
     # This should be the same as the webScheduler.airflowCfgConfigMap unless 
@@ -56,7 +63,6 @@ airflowCfg:
     # There is currently only one templated (airflow-cfg-configmap.yaml). 
     # This is named {{ .Values.webScheduler.airflowCfgConfigMap }}
     airflowConfigmap: airflow-configmap
-    dagsVolumeClaim: airflow-dags
     workerContainerRepository: quay.io/eamonkeane/airflow-k8s
     workerContainerTag: "0.2"
     namespace: default
@@ -76,12 +82,14 @@ airflowCfg:
 webScheduler:
   web:
     name: web
+    dagVolumeReadOnly: True
     replicaCount: 1
     service:
       type: ClusterIP
       port: 8080
   scheduler:
     name: scheduler
+    dagVolumeReadOnly: True
     serviceAccountName: airflow-rbac
     kubeconfigMountPath: /root/airflow/kubeconfig
   preHook:
@@ -92,6 +100,7 @@ webScheduler:
   installScheduler: true
   image: quay.io/eamonkeane/airflow-k8s
   tag: "0.2"
+  imagePullPolicy: IfNotPresent
   dagsVolumeClaim: airflow-dags
   dagsMountPath: /usr/local/airflow/dags
   dagsVolumeClaimSubPath:

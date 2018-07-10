@@ -1,0 +1,29 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: airflow-dags-sync
+  namespace: default
+spec:
+  containers:
+    - name: git-sync-clone
+      env:
+        - name: GIT_SYNC_REPO
+          value: https://github.com/EamonKeane/airflow-dag-example
+        - name: GIT_SYNC_BRANCH
+          value: master
+        - name: GIT_SYNC_DEST
+          value: dags
+      image: gcr.io/google-containers/git-sync-amd64:v2.0.6
+      imagePullPolicy: IfNotPresent
+      resources: {}
+      securityContext:
+        runAsUser: 0
+      volumeMounts:
+      - mountPath: /sync
+        name: airflow-dags
+  securityContext: {}
+  volumes:
+  - name: airflow-dags
+    persistentVolumeClaim:
+      claimName: airflow-dags
+      readOnly: false
