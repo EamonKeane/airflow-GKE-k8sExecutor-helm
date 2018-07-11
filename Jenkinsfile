@@ -18,7 +18,7 @@ podTemplate(label: 'jenkins-pipeline',
     volumes:[
         hostPathVolume(mountPath: '/var/run/docker.sock', hostPath: '/var/run/docker.sock'),
         secretVolume(secretName:'deploy-service-account', mountPath: '/home/jenkins/deploy-service-account'),
-        nfsVolume(mountPath: $containerDagMountPath, serverAddress: $config.nfs.internalIP, serverPath: $config.nfs.dagFolder, readOnly: false),
+        nfsVolume(mountPath: $config.containerDagMountPath, serverAddress: $config.nfs.internalIP, serverPath: $config.nfs.dagFolder, readOnly: false),
     ],
     envVars:[
         secretEnvVar(key: 'docker_password', secretName: 'logistio-deploy-pull-password', secretKey: 'docker_password'),
@@ -34,5 +34,5 @@ podTemplate(label: 'jenkins-pipeline',
             return;
         }
         // Move the service account file we mounted in the podTemplate construct
-        sh "cp -r ${WORKSPACE} ${containerDagMountPath}"
+        sh "cp -r ${WORKSPACE} ${config.containerDagMountPath}"
         
