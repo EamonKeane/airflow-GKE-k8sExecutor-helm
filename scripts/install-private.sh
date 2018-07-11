@@ -1,8 +1,8 @@
 ACCOUNT=eamon@logistio.ie
 PROJECT="icabbi-202810"
-GCE_ZONE="europe-west2-c"
+GCE_ZONE="europe-west2-a"
 REGION="europe-west2"
-DATABASE_INSTANCE_NAME=icabbiairflow4
+DATABASE_INSTANCE_NAME=airflow
 ./gcloud-sql-k8s-install.sh \
     --project=$PROJECT \
     --account=$ACCOUNT \

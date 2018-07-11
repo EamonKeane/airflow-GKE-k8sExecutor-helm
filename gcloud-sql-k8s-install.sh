@@ -54,6 +54,7 @@ DAGS_DISK_SIZE=10GB
 DAGS_DISK_TYPE=pd-ssd
 
 #### DATABASE OPTIONS ####
+CREATE_CLOUDSQL_DATABASE=FALSE
 ACTIVATION_POLICY=always
 AVAILABILITY_TYPE=zonal
 CPU=1
@@ -86,10 +87,11 @@ KUBERNETES_KUBECONFIG_SECRET=kubeconfig
 KUBERNETES_MACHINE_LABELS="app=airflow"
 MASTER_KUBERNETES_NODE_LABELS="app=airflow,pool=webScheduler"
 LEADER_POOL_NUM_NODES=1
-MACHINE_TYPE="n1-standard-2"
+# 'Memory should be a multiple of 256MiB in zone europe-west2-a for custom machine type, while 2MiB is requested.'., invalidResourceUsage.
+MACHINE_TYPE="custom-2-2048"
 
 # Airflow worker pool options
-CREATE_WORKER_POOL=FALSE
+CREATE_WORKER_POOL=TRUE
 WORKER_NODE_POOL_NAME="airflow-workers"
 WORKER_KUBERNETES_NODE_LABELS="airflow=airflow_workers,pool=preemptible"
 WORKER_NODE_MACHINE_TYPE="n1-standard-4"
@@ -100,9 +102,9 @@ WORKER_POOL_MIN_NODES=0
 # Some of the kubernetes options require use of beta features.
 gcloud config set container/use_v1_api false
 
-
 ### Create the postgres database ###
 ### https://cloud.google.com/sdk/gcloud/reference/sql/instances/create
+if [ $CREATE_CLOUDSQL_DATABASE = "TRUE" ]; then
 gcloud sql instances create $DATABASE_INSTANCE_NAME \
     --activation-policy=$ACTIVATION_POLICY \
     --availability-type=$AVAILABILITY_TYPE \
@@ -115,6 +117,7 @@ gcloud sql instances create $DATABASE_INSTANCE_NAME \
     --storage-size=$STORAGE_SIZE \
     --account=$ACCOUNT \
     --project=$PROJECT
+fi
 
 ### Create the airflow cluster. 
 ### The default node pool will be used only for the web server and scheduler, 
@@ -132,7 +135,6 @@ gcloud container clusters create $CLUSTER_NAME \
     --node-taints=$WORKER_POOL_NODE_TAINTS \
     --node-version=$CLUSTER_VERSION \
     --num-nodes=$LEADER_POOL_NUM_NODES \
-    --preemptible \
     --zone=$GCE_ZONE \
     --node-locations=$GCE_ZONE \
     --scopes=$SCOPES \
@@ -164,7 +166,6 @@ gcloud container node-pools create $WORKER_NODE_POOL_NAME \
     --account=$ACCOUNT \
     --project=$PROJECT
 fi
-
 
 ### Create service account for cloudsql-proxy to connect to and create kubernetes secret 
 ### https://cloud.google.com/sdk/gcloud/reference/iam/service-accounts/create
@@ -251,11 +252,3 @@ gsutil mb -p $PROJECT -c regional -l $REGION gs://$GOOGLE_LOG_STORAGE_BUCKET/
 ### https://github.com/mveritym/kubedecode
 rm $CLOUDSQL_SERVICE_ACCOUNT.json 
 rm $KUBERNETES_KUBECONFIG_SECRET
-
-gcloud compute disks create $DAGS_DISK_NAME \
-  --description="Used to sync github with dags" \
-  --size=$DAGS_DISK_SIZE \
-  --type=$DAGS_DISK_TYPE \
-  --zone=$GCE_ZONE \
-  --project=$PROJECT
-

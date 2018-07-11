@@ -17,7 +17,6 @@ kubectl delete pv --all
 kubectl delete secret airflow
 kubectl apply -f secret.yaml
 
-
 CLOUDSQL_SERVICE_ACCOUNT="airflowcloudsql"
 SQL_ALCHEMY_CONN=
 AIRFLOW_POSTGRES_INSTANCE=
@@ -40,5 +39,12 @@ k edit po $NAME
 # https://github.com/kubernetes/kubernetes/issues/65936
 #   finalizers:
 #  - foregroundDeletion
+
+CLIENT_ID=
+CLIENT_SECRET=
+
+kubectl create secret generic google_oauth \
+  --from-literal=client_id=$CLIENT_ID \
+  --from-literal=client_secret=$CLIENT_SECRET
 
 

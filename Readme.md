@@ -40,15 +40,13 @@ echo "Visit http://127.0.0.1:8080 to use your application"
 kubectl port-forward $POD_NAME 8080:8080
 ```
 
-To install an ingress with nginx-ingress use `--set ingress.enabled=true`. There is no authentication by default, so please add your authentication method to `airflow/airflow.cfg`.
+To expose the web server behind a https url with google oauth, please see the section below.
 
 ## Tidying up
 The easiest way to tidy-up is to delete the project and make a new one if re-deploying, however there are steps in tidying-up.sh to delete the individual resources.
 
 ## Input
-This is a work in progress and the install script is a bit brittle. One area where I could use some input is the best way to set up storage for DAGS on GKE. Persistent disks can only be attached to one
-node at a time (hence this example only works on one node). I see some options such as gcsfuse but am not sure if they would work with the k8s executor worker definitions. Cloud Filestore would work but this is not released yet (beta due soon apparently). https://github.com/kubernetes-sigs/gcp-filestore-csi-driver
-
+This is a work in progress and the install script is a bit brittle. 
 ## Helm chart layout
 There are a few elements to the chart:
 * This chart only focuses on the kubernetes executor and is tailored to run on GKE, but
@@ -64,3 +62,131 @@ When debugging it is useful to set the executor to LocalExecutor. This can be do
 --set airflowCfg.core.executor=LocalExecutor
 ```
 This way you can see all the logs on one pod and can still test kubernetes using the Pod Operator (this requires a kubeconfig to be mounted on the scheduler pod, which is part of the setup).
+
+To view the applied configuration, shell into a pod and paste the following code:
+
+```python
+python
+from airflow.configuration import *
+from pprint import pprint
+pprint(conf.as_dict(display_source=True,display_sensitive=True))
+```
+
+## Exposing oauth2 Google ingress with cert-manager and nginx-ingress
+
+
+```bash
+helm install stable/cert-manager \
+    --name cert-manager
+    --namespace kube-system \
+    --set ingressShim.defaultIssuerName=letsencrypt-prod \
+    --set ingressShim.defaultIssuerKind=ClusterIssuer
+```
+
+Add the default cluster issuer (this will install an let's encrypt cert using the below letsencrypt-prod certificate issuer for all). Replace the email field with your email.
+
+```bash
+kubectl apply -f kubernetes-yaml/cluster-issuer.yaml
+```
+
+Install nginx-ingress with the option to preserve sticky sessions (externalTrafficPolicy). This will take around a minute to install.
+
+```bash
+helm install stable/nginx-ingress \
+    --wait \
+    --name nginx-ingress \
+    --namespace kube-system \
+    --set rbac.create=true \
+    --set controller.service.externalTrafficPolicy=Local
+```
+
+```bash
+INGRESS_IP=$(kubectl get svc \
+            --namespace kube-system \
+            --selector=app=nginx-ingress,component=controller \
+            -o jsonpath='{.items[0].status.loadBalancer.ingress[0].ip}');echo ${INGRESS_IP}
+```
+
+Add a DNS A record of `$MY_AIRFLOW_DOMAIN` with IP address `$INGRESS_IP` with your domain name provider. Verify that it has updated.
+
+```bash
+dig $MY_AIRFLOW_DOMAIN
+...
+;; ANSWER SECTION:
+airflow.mysite.io. 5      IN      A       35.230.155.177
+...
+```
+
+Create a file called `my-values.yaml` and populate it with the values below.
+
+```bash
+MY_AIRFLOW_DOMAIN=airflow.mysite.io
+```
+
+```yaml
+ingress:
+  enabled: true
+  hosts: 
+    - $MY_DOMAIN
+  tls:
+  - hosts:
+    - $MY_DOMAIN
+    secretName: $MY_DOMAIN
+```
+
+Create an oauth2 credential on Google Cloud Dashboard.
+```bash
+PROJECT=myorg-123456
+OAUTH_APP_NAME=myorg-airflow
+```
+
+* Navigate to https://console.cloud.google.com/apis/credentials?project=$PROJECT
+* Click Create Credentials
+* Select OAuth Client ID
+* Select Web Application
+* Enter `$OAUTH_APP_NAME` as the Name
+* In authorized redirect URLs, enter https://$MY_DOMAIN/oauth2callback
+* Click download json at the top of the page
+
+Get the file path of the json file:
+
+```bash
+MY_OAUTH2_CREDENTIALS=/Users/../../client_secret_123456778910-oul980h2fk7om2o67aj5d0aum79pqv8a.apps.googleusercontent.com.json
+```
+
+Create a kubernetes secret to hold the client_id and client_secret (these will be set as env variables in the web pod)
+
+```bash
+CLIENT_ID=$(jq .web.client_id $MY_OAUTH2_CREDENTIALS --raw-output )
+CLIENT_SECRET=$(jq .web.client_secret $MY_OAUTH2_CREDENTIALS --raw-output )
+kubectl create secret generic google-oauth \
+        --from-literal=client_id=$CLIENT_ID \
+        --from-literal=client_secret=$CLIENT_SECRET
+```
+
+Add the below values to `my-values.yaml`:
+
+```yaml
+webScheduler:
+  web:
+    authenticate: True
+    authBackend: airflow.contrib.auth.backends.google_auth
+    googleAuthDomain: mysite.io
+    googleAuthSecret: google-oauth
+    googleAuthSecretClientIDKey: client_id
+    googleAuthSecretClientSecretKey: client_secret
+```
+
+Update the helm deployment.
+
+```bash
+helm upgrade \
+    --install \
+    --set google.project=$PROJECT \
+    --set google.region=$REGION \
+    --values my-values.yaml \
+    airflow \
+    airflow
+```
+
+Navigate to `https://$MY_AIRFLOW_DOMAIN`. Log into google, you should now see the dashboard UI.

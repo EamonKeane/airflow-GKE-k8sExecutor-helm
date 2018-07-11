@@ -40,25 +40,25 @@ GCE_LOG_BUCKET_NAME=$PROJECT-airflow
 
 SERVICE_ACCOUNT_FULL=$SERVICE_ACCOUNT_NAME@$PROJECT.iam.gserviceaccount.com
 
-gcloud sql instances delete $DATABASE_INSTANCE_NAME --project=$PROJECT --async
+gcloud sql instances delete $DATABASE_INSTANCE_NAME --project=$PROJECT --async --quiet
 
-gcloud container clusters delete $CLUSTER_NAME --project=$PROJECT --zone=$GCE_ZONE --async
+gcloud container clusters delete $CLUSTER_NAME --project=$PROJECT --zone=$GCE_ZONE --async --quiet
 
-gcloud iam service-accounts delete $SERVICE_ACCOUNT_NAME@$PROJECT.iam.gserviceaccount.com
+gcloud iam service-accounts delete $SERVICE_ACCOUNT_NAME@$PROJECT.iam.gserviceaccount.com --quiet
+
+gsutil rm -r gs://$PROJECT-airflow
+
+gcloud compute disks delete $DAGS_DISK_NAME --project=$PROJECT --zone=$GCE_ZONE --quiet
 
 ### Permission denied, so had to do this in the dashboard
 gcloud iam service-accounts remove-iam-policy-binding $SERVICE_ACCOUNT_FULL \
     --project=$PROJECT \
     --member=serviceAccount:$SERVICE_ACCOUNT_FULL \
-    --role=$CLOUDSQL_ROLE
+    --role=$CLOUDSQL_ROLE --quiet
 
 gcloud iam service-accounts remove-iam-policy-binding $SERVICE_ACCOUNT_FULL \
     --project=$PROJECT \
     --member=serviceAccount:$SERVICE_ACCOUNT_FULL \
-    --role=$STORAGE_ROLE
-
-gsutil rm -r gs://$PROJECT-airflow
-
-gcloud compute disks delete $DAGS_DISK_NAME --project=$PROJECT --zone=$GCE_ZONE
+    --role=$STORAGE_ROLE --quiet
 
 
