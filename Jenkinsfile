@@ -29,10 +29,11 @@ podTemplate(label: 'jenkins-pipeline',
         checkout scm;
         pipeline.gitEnvVars();
 
-        if (env.BRANCH_NAME != 'master') {
+        if (env.BRANCH_NAME != ${config.buildBranch}) {
             println "Stopping the build.";
             return;
         }
         // Move the service account file we mounted in the podTemplate construct
         sh "cp -r ${WORKSPACE} ${config.containerDagMountPath}"
-        
+        }
+}
