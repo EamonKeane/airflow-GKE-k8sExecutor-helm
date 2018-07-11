@@ -19,7 +19,10 @@ dagVolume:
   # --type=$DAGS_DISK_TYPE \
   # --zone=$GCE_ZONE \
   # --project=$PROJECT
-  gcePersistentDisk: airflow-dags
+  # Alternatively create a singe node NFS filer on Google Cloud Launcher:
+  # https://cloud.google.com/launcher/docs/single-node-fileserver
+  nfsServer: 10.154.0.7
+  nfsPath: /icabbi-airflow
   # This must be the same of smaller than the size of the PV you created
   size: 10Gi
   installPV: true

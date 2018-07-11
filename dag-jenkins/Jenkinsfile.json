@@ -1,0 +1,17 @@
+{
+    "nfs": {
+        "internalIP": "10.154.0.7",
+        "zone": "europe-west2-c",
+        "externalIP": "35.189.81.147",
+        "name": "icabbi-airflow-vm",
+        "dagFolder": "/icabbi-airflow"
+    },
+    "containerDagMountPath": "/icabbi-airflow",
+    "pipeline": {
+        "enabled": true,
+        "debug": false,
+        "library": {
+        "branch": "master"
+        }
+    }
+  }

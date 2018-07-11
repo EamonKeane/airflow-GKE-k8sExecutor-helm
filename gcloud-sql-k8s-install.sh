@@ -118,12 +118,7 @@ gcloud sql instances create $DATABASE_INSTANCE_NAME \
 
 ### Create the airflow cluster. 
 ### The default node pool will be used only for the web server and scheduler, 
-### for this reason this pool is not set to pre-emptible. Auto-scaling is enabled
-### with a max of one node (per region, so 3) and a min of 0. Depending on kubernetes scheduling
-### if all webserver and scheduler pods end up on the same node, GKE might only run one node
-### so there is a balance of cost versus availability. This can be modified by using pod affinities
-### to ensure a spread of webserver and scheduler on nodes. Delete enable-atuoscaling and min/max nodes
-### if you want to have three nodes at all times
+### This is set to be pre-emptible to lower costs
 ### https://cloud.google.com/sdk/gcloud/reference/container/clusters/create
 gcloud container clusters create $CLUSTER_NAME \
     --cluster-version=$CLUSTER_VERSION \
@@ -137,6 +132,7 @@ gcloud container clusters create $CLUSTER_NAME \
     --node-taints=$WORKER_POOL_NODE_TAINTS \
     --node-version=$CLUSTER_VERSION \
     --num-nodes=$LEADER_POOL_NUM_NODES \
+    --preemptible \
     --zone=$GCE_ZONE \
     --node-locations=$GCE_ZONE \
     --scopes=$SCOPES \
@@ -160,7 +156,6 @@ gcloud container node-pools create $WORKER_NODE_POOL_NAME \
     --node-taints=$WORKER_POOL_NODE_TAINTS \
     --node-version=$CLUSTER_VERSION \
     --num-nodes=$WORKER_POOL_NUM_NODES \
-    --preemptible \
     --enable-autoscaling \
     --max-nodes=$WORKER_POOL_MAX_NODES \
     --min-nodes=$WORKER_POOL_MIN_NODES \

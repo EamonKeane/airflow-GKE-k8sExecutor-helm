@@ -18,8 +18,7 @@ spec:
   # https://cloud.google.com/kubernetes-engine/docs/concepts/persistent-volumes
   storageClassName: ""
   accessModes:
-    - "ReadWriteOnce"
-    - "ReadOnlyMany"
+    - "ReadWriteMany"
   volumeName: {{ .Values.webScheduler.dagsVolumeClaim }}
   resources:
     requests:

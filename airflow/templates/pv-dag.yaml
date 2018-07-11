@@ -11,9 +11,8 @@ spec:
     storage: {{ .Values.dagVolume.size }}
   persistentVolumeReclaimPolicy: Retain
   accessModes:
-  - ReadOnlyMany
-  - ReadWriteOnce
-  gcePersistentDisk:
-    pdName: {{ .Values.dagVolume.gcePersistentDisk }}
-    fsType: ext4
+  - ReadWriteMany
+  nfs:
+    server: {{ .Values.dagVolume.nfsServer }}
+    path: {{ .Values.dagVolume.nfsPath }}
 {{- end -}}

@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: Pod
 metadata:
-  name: airflow-dags-sync
+  name: airflow-dags-sync2
   namespace: default
 spec:
   containers:
@@ -24,6 +24,12 @@ spec:
   securityContext: {}
   volumes:
   - name: airflow-dags
-    persistentVolumeClaim:
-      claimName: airflow-dags
-      readOnly: false
+    nfs:
+      path: "/icabbi-airflow"
+      server: 10.154.0.7
+
+  # volumes:
+  # - name: airflow-dags
+  #   persistentVolumeClaim:
+  #     claimName: airflow-dags
+  #     readOnly: false
