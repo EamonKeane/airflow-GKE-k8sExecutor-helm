@@ -44,7 +44,7 @@ kubectl port-forward $POD_NAME 8080:8080
 To expose the web server behind a https url with google oauth, please see the section below.
 
 ## Permanent Storage
-Please see below for the [create an anchor](#anchors-in-markdown)
+Please see below for the [NFS Server](#NFS-Server)
 
 ## Tidying up
 The easiest way to tidy-up is to delete the project and make a new one if re-deploying, however there are steps in tidying-up.sh to delete the individual resources.
@@ -229,11 +229,16 @@ dagVolume:
   nfsPath: "/$STORAGE_NAME"
 ```
 
+Setup jenkins per the instructions [below](#Setup-Jenkins-to-sync-dags), or alternatively, copy the example pod operator in this repo to the $STORAGE_NAME of the NFS server (you can get connection instructions at this url <https://console.cloud.google.com/dm/deployments/details/$NFS_DEPLOYMENT_NAME?project=$PROJECT>)
+
 ## Setup Jenkins to sync dags
+
+```bash
 jq ".nfs.name = \"$AIRFLOW_NFS_VM_NAME\"" Jenkinsfile.json > tmp.json && mv tmp.json Jenkinsfile.json
 jq ".nfs.internalIP = \"$INTERNAL_IP\"" Jenkinsfile.json > tmp.json && mv tmp.json Jenkinsfile.json
 jq ".nfs.dagFolder = \"$STORAGE_NAME\"" Jenkinsfile.json > tmp.json && mv tmp.json Jenkinsfile.json
 jq ".nfs.zone = \"$GCE_ZONE\"" Jenkinsfile.json > tmp.json && mv tmp.json Jenkinsfile.json
+```
 
 In the Jenkinsfile pod template, replace `nfsVolume` variables to the following:
 
@@ -242,3 +247,4 @@ serverAddress: $INTERNAL_IP
 serverPath: $STORAGE_NAME
 ```
 
+Set up Jenkins to trigger a build on each git push of this repository (see here for example instructions: <https://github.com/eamonkeane/jenkins-blue>). The dags folder will then appear synced in your webscheduler pods.  
