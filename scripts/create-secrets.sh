@@ -9,7 +9,6 @@ FERNET_KEY=
 GCS_LOG_FOLDER=
 KUBECONFIG="kubeconfig"
 
-
 kubectl create secret generic airflow \
     --from-literal=fernet-key=$FERNET_KEY \
     --from-literal=airflow-postgres-instance=$AIRFLOW_POSTGRES_INSTANCE \

@@ -88,7 +88,7 @@ KUBERNETES_MACHINE_LABELS="app=airflow"
 MASTER_KUBERNETES_NODE_LABELS="app=airflow,pool=webScheduler"
 LEADER_POOL_NUM_NODES=1
 # 'Memory should be a multiple of 256MiB in zone europe-west2-a for custom machine type, while 2MiB is requested.'., invalidResourceUsage.
-MACHINE_TYPE="custom-2-2048"
+MACHINE_TYPE="custom-3-2560"
 
 # Airflow worker pool options
 CREATE_WORKER_POOL=TRUE
@@ -131,6 +131,7 @@ gcloud container clusters create $CLUSTER_NAME \
     --image-type=$IMAGE_TYPE \
     --labels=$KUBERNETES_MACHINE_LABELS \
     --machine-type=$MACHINE_TYPE \
+    --preemptible \
     --node-labels=$AIRFLOW_MASTER_KUBERNETES_NODE_LABELS \
     --node-taints=$WORKER_POOL_NODE_TAINTS \
     --node-version=$CLUSTER_VERSION \
@@ -159,6 +160,7 @@ gcloud container node-pools create $WORKER_NODE_POOL_NAME \
     --node-version=$CLUSTER_VERSION \
     --num-nodes=$WORKER_POOL_NUM_NODES \
     --enable-autoscaling \
+    --preemptible \
     --max-nodes=$WORKER_POOL_MAX_NODES \
     --min-nodes=$WORKER_POOL_MIN_NODES \
     --zone=$GCE_ZONE \
