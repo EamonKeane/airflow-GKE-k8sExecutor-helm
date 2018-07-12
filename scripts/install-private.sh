@@ -1,7 +1,8 @@
-ACCOUNT=eamon@logistio.ie
-PROJECT="icabbi-202810"
-GCE_ZONE="europe-west2-a"
-REGION="europe-west2"
+#!/usr/bin/env bash
+ACCOUNT=$(gcloud config get-value core/account)
+PROJECT=$(gcloud config get-value core/project)
+REGION=$(gcloud config get-value compute/region)
+GCE_ZONE=$(gcloud config get-value compute/zone)
 DATABASE_INSTANCE_NAME=airflow
 ./gcloud-sql-k8s-install.sh \
     --project=$PROJECT \

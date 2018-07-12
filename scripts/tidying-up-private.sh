@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 
-ACCOUNT=eamon@logistio.ie
-PROJECT="icabbi-202810"
-REGION="europe-west2"
-GCE_ZONE="europe-west2-a"
+ACCOUNT=$(gcloud config get-value core/account)
+PROJECT=$(gcloud config get-value core/project)
+REGION=$(gcloud config get-value compute/region)
+GCE_ZONE=$(gcloud config get-value compute/zone)
 DATABASE_INSTANCE_NAME=airflow
 
 ./tidying-up.sh --project=$PROJECT \

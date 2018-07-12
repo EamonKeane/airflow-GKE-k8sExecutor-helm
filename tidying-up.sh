@@ -3,10 +3,10 @@
 # set -e
 
 #### GLOBAL GCP VARIABLES ####
-PROJECT=
-REGION=
-GCE_ZONE=
-
+ACCOUNT=$(gcloud config get-value core/account)
+PROJECT=$(gcloud config get-value core/project)
+REGION=$(gcloud config get-value compute/region)
+GCE_ZONE=$(gcloud config get-value compute/zone)
 
 CLUSTER_NAME="airflow"
 
