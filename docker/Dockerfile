@@ -61,12 +61,10 @@ RUN set -ex \
     && pip install pyOpenSSL \
     && pip install ndg-httpsclient \
     && pip install pyasn1 \
-    && pip install celery[redis]==4.1.1 \
     && pip install kubernetes \
     && pip install cryptography \
     && pip install psycopg2 \
     && pip install mysqlclient \
-    && pip install git+https://github.com/mher/flower.git#egg=flower \
     && pip install git+https://github.com/apache/incubator-airflow#egg=apache-airflow \
     && apt-get purge --auto-remove -yqq $buildDeps \
     && apt-get autoremove -yqq --purge \
@@ -82,10 +80,13 @@ RUN set -ex \
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
-RUN pip install google-api-python-client
+# Install google dependencies for oauth login
+RUN pip install google-api-python-client && \
+    pip install oauth2client && \
+    pip install datalab && \
+    pip install flask-oauthlib 
 
 RUN chown -R airflow: ${AIRFLOW_HOME}
-
 
 EXPOSE 8080
 

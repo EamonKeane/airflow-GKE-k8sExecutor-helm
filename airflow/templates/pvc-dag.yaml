@@ -1,11 +1,11 @@
-# -----
+{{- if .Values.dagVolume.installPVC -}}
 kind: PersistentVolumeClaim
 apiVersion: v1
 metadata:
   annotations:
     "helm.sh/hook": pre-install
     "helm.sh/hook-weight": "-35"
-  name: {{ .Values.dagVolume.gcePersistentDisk }}
+  name: {{ .Values.webScheduler.dagsVolumeClaim }}
   labels:
     app: {{ template "airflow.name" . }}
     chart: {{ template "airflow.chart" . }}
@@ -18,9 +18,9 @@ spec:
   # https://cloud.google.com/kubernetes-engine/docs/concepts/persistent-volumes
   storageClassName: ""
   accessModes:
-    - "ReadWriteOnce"
-    - "ReadOnlyMany"
-  volumeName: {{ .Values.dagVolume.gcePersistentDisk }}
+    - "ReadWriteMany"
+  volumeName: {{ .Values.webScheduler.dagsVolumeClaim }}
   resources:
     requests:
       storage: {{ .Values.dagVolume.size }}
+{{- end -}}

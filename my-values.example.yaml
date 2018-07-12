@@ -1,0 +1,40 @@
+webScheduler:
+  tag: "0.2-oracle"
+  imagePullPolicy: Always
+  installWebServer: true
+  installScheduler: true
+  dagsVolumeClaim: airflow-dags
+  web:
+    authenticate: True
+    authBackend: airflow.contrib.auth.backends.google_auth
+    googleAuthDomain: logistio.ie
+    googleAuthSecret: google-oauth
+    googleAuthSecretClientIDKey: client_id
+    googleAuthSecretClientSecretKey: client_secret
+  preHook: 
+    install: true
+  scheduler:
+    dagVolumeReadOnly: false
+
+dagVolume:
+  installPV: true
+  installPVC: true
+  nfsServer: "12.345.6.7"
+  nfsPath: /dags
+
+createWorkerRBAC: true
+installPostgresService: true
+installCloudsqlProxyDeploy: true
+
+airflowCfg:
+  core:
+    executor: KubernetesExecutor
+
+ingress:
+  enabled: true
+  hosts: 
+    - airflow.mysite.io
+  tls:
+  - hosts:
+    - airflow.mysite.io
+    secretName: airflow.mysite.io

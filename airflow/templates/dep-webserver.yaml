@@ -27,14 +27,15 @@ spec:
       containers:
         - name: {{ template "airflow.webserver.fullname" . }}
           image: {{ .Values.webScheduler.image }}:{{ .Values.webScheduler.tag }}
+          imagePullPolicy: {{ .Values.webScheduler.imagePullPolicy }}
           ports:
             - name: {{ .Values.webScheduler.web.name }}
               containerPort: 8080
           volumeMounts:
-          - name: {{ .Values.dagVolume.gcePersistentDisk }} 
+          - name: {{ .Values.webScheduler.dagsVolumeClaim }} 
             mountPath: {{ .Values.webScheduler.dagsMountPath }}
             subPath: {{ .Values.dagVolumeClaimSubPath }}
-            readOnly: true
+            readOnly: {{ .Values.webScheduler.web.dagVolumeReadOnly }}
           - name: {{ .Values.webScheduler.airflowCfgConfigMap }}
             mountPath: {{ .Values.webScheduler.airflowCfgPath }}
             subPath: airflow.cfg
@@ -54,24 +55,37 @@ spec:
                secretKeyRef:
                  name: {{ .Values.secrets.name }}
                  key: "{{ .Values.secrets.key.gcsLogFolder }}"
-          livenessProbe:
-            httpGet:
-              path: /
-              port: 8080
-            initialDelaySeconds: 20
-            timeoutSeconds: 30
-          readinessProbe:
-            httpGet:
-              path: /
-              port: 8080
-            initialDelaySeconds: 20
-            timeoutSeconds: 30
+{{- if .Values.webScheduler.web.authenticate }}
+           - name: AIRFLOW__GOOGLE__CLIENT_ID
+             valueFrom:
+               secretKeyRef:
+                 name: {{ .Values.webScheduler.web.googleAuthSecret }}
+                 key: {{ .Values.webScheduler.web.googleAuthSecretClientIDKey }}         
+           - name: AIRFLOW__GOOGLE__CLIENT_SECRET
+             valueFrom:
+               secretKeyRef:
+                 name: {{ .Values.webScheduler.web.googleAuthSecret }}
+                 key: {{ .Values.webScheduler.web.googleAuthSecretClientSecretKey }}     
+{{ end }}   
+          # livenessProbe:
+          #   httpGet:
+          #     path: /
+          #     port: 8080
+          #   initialDelaySeconds: 20
+          #   timeoutSeconds: 30
+          # readinessProbe:
+          #   httpGet:
+          #     path: /
+          #     port: 8080
+          #   initialDelaySeconds: 20
+          #   timeoutSeconds: 30
           args: ["webserver"]
       volumes:
         - name: {{ .Values.webScheduler.airflowCfgConfigMap }}
           configMap:
             name: "{{ .Values.webScheduler.airflowCfgConfigMap }}-{{ .Release.Time.Seconds }}"
-        - name: {{ .Values.dagVolume.gcePersistentDisk }}  
+        - name: {{ .Values.webScheduler.dagsVolumeClaim }}  
           persistentVolumeClaim:
-            claimName: {{ .Values.dagVolume.gcePersistentDisk }} 
+            claimName: {{ .Values.webScheduler.dagsVolumeClaim }} 
+            readOnly: {{ .Values.webScheduler.web.dagVolumeReadOnly }}
 {{- end -}}

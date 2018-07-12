@@ -1,3 +1,4 @@
+{{- if .Values.installPostgresService -}}
 kind: Service
 apiVersion: v1
 metadata:
@@ -19,3 +20,4 @@ spec:
     - name: "{{ template "airflow.postgresql.fullname" . }}"
       port: 5432
       protocol: TCP
+{{- end -}}

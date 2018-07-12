@@ -27,11 +27,12 @@ spec:
       containers:
         - name: {{ template "airflow.webserver.fullname" . }}
           image: {{ .Values.webScheduler.image }}:{{ .Values.webScheduler.tag }}
+          imagePullPolicy: {{ .Values.webScheduler.imagePullPolicy }}
           volumeMounts:
-          - name: {{ .Values.dagVolume.gcePersistentDisk }}
+          - name: {{ .Values.webScheduler.dagsVolumeClaim }}
             mountPath: {{ .Values.webScheduler.dagsMountPath }}
             subPath: {{ .Values.dagVolumeClaimSubPath }}
-            readOnly: true
+            readOnly: {{ .Values.webScheduler.scheduler.dagVolumeReadOnly }}
           - name: {{ .Values.webScheduler.airflowCfgConfigMap }}
             mountPath: {{ .Values.webScheduler.airflowCfgPath }}
             subPath: airflow.cfg
@@ -58,10 +59,10 @@ spec:
         - name: {{ .Values.webScheduler.airflowCfgConfigMap }}
           configMap:
             name: "{{ .Values.webScheduler.airflowCfgConfigMap }}-{{ .Release.Time.Seconds }}"
-        - name: {{ .Values.dagVolume.gcePersistentDisk }} 
+        - name: {{ .Values.webScheduler.dagsVolumeClaim}} 
           persistentVolumeClaim:
-            claimName: {{ .Values.dagVolume.gcePersistentDisk }} 
-            readOnly: true
+            claimName: {{ .Values.webScheduler.dagsVolumeClaim }} 
+            readOnly: {{ .Values.webScheduler.scheduler.dagVolumeReadOnly }}
         - name: {{ .Values.secrets.key.kubeconfig }}
           secret:
             secretName: {{ .Values.secrets.name }}

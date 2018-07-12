@@ -30,7 +30,7 @@ spec:
       containers:
        - name: "pre-hook-migration"
          image: {{ .Values.webScheduler.image }}:{{ .Values.webScheduler.tag }}
-         imagePullPolicy: IfNotPresent
+         imagePullPolicy: {{ .Values.webScheduler.imagePullPolicy }}
          volumeMounts:
           - name: "{{ .Values.webScheduler.airflowCfgConfigMap }}"
             mountPath: {{ .Values.webScheduler.airflowCfgPath }}
