@@ -19,6 +19,8 @@ webScheduler:
 dagVolume:
   installPV: true
   installPVC: true
+  nfsServer: "10.154.0.7"
+  nfsPath: /icabbi-airflow
 
 createWorkerRBAC: true
 installPostgresService: true

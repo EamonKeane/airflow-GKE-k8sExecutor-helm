@@ -43,8 +43,3 @@ k edit po $NAME
 CLIENT_ID=
 CLIENT_SECRET=
 
-kubectl create secret generic google_oauth \
-  --from-literal=client_id=$CLIENT_ID \
-  --from-literal=client_secret=$CLIENT_SECRET
-
-

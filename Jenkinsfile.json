@@ -1,0 +1,18 @@
+{
+  "nfs": {
+    "internalIP": "$INTERNAL_IP",
+    "zone": "$GCE_ZONE",
+    "name": "$AIRFLOW_NFS_VM_NAME",
+    "dagFolder": "$STORAGE_NAME"
+  },
+  "containerDagMountPath": "/dags",
+  "githubDagSubFolder": "/dags",
+  "buildBranch": "master",
+  "pipeline": {
+    "enabled": true,
+    "debug": false,
+    "library": {
+      "branch": "master"
+    }
+  }
+}

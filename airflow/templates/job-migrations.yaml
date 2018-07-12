@@ -46,10 +46,10 @@ spec:
                secretKeyRef:
                   name: {{ .Values.secrets.name }}
                   key: {{ .Values.secrets.key.fernetKey }}
-          #  - name: AIRFLOW__CORE__REMOTE_BASE_LOG_FOLDER
-          #    valueFrom:
-          #      secretKeyRef:
-          #         name: {{ .Values.secrets.name }}
-          #         key: {{ .Values.secrets.key.gcsLogFolder }}
+           - name: AIRFLOW__CORE__REMOTE_BASE_LOG_FOLDER
+             valueFrom:
+               secretKeyRef:
+                  name: {{ .Values.secrets.name }}
+                  key: {{ .Values.secrets.key.gcsLogFolder }}
          args: [{{ .Values.webScheduler.preHook.args }}]
 {{- end -}}

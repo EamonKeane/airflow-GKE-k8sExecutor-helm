@@ -15,8 +15,8 @@ installCloudsqlProxyDeploy: true
 dagVolume:
   # Create a singe node NFS filer on Google Cloud Launcher:
   # https://cloud.google.com/launcher/docs/single-node-fileserver
-  nfsServer: 10.154.0.7
-  nfsPath: /icabbi-airflow
+  nfsServer: 
+  nfsPath: /dags
   # This must be the same of smaller than the size of the PV you created
   size: 10Gi
   installPV: true
@@ -86,12 +86,18 @@ webScheduler:
   masterNodeSelector: app=airflow-leader
   web:
     name: web
+    # If setting authenticate to true, create a secret of the form:
+    # kubectl create secret generic google-oauth \
+    #     --from-literal=client_id=$CLIENT_ID \
+    #     --from-literal=client_secret=$CLIENT_SECRET 
     authenticate: False
-    authBackend:
-    googleAuthDomain: 
-    googleAuthSecret:
-    googleAuthSecretClientIDKey: 
+    ## These values are only needed if authenticate is set to true
+    authBackend: airflow.contrib.auth.backends.google_auth
+    googleAuthDomain: mysite.io
+    googleAuthSecret: google-oauth
+    googleAuthSecretClientIDKey: client_id
     googleAuthSecretClientSecretKey: client_secret
+    ##
     dagVolumeReadOnly: True
     replicaCount: 1
     service:

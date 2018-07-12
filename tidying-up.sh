@@ -18,6 +18,8 @@ SERVICE_ACCOUNT_NAME=airflowcloudsql
 CLOUDSQL_ROLE='roles/cloudsql.admin'
 STORAGE_ROLE='roles/storage.admin'
 
+NFS_DEPLOYMENT_NAME=dags-airflow
+
 for i in "$@"
 do
 case ${i} in
@@ -48,8 +50,6 @@ gcloud iam service-accounts delete $SERVICE_ACCOUNT_NAME@$PROJECT.iam.gserviceac
 
 gsutil rm -r gs://$PROJECT-airflow
 
-gcloud compute disks delete $DAGS_DISK_NAME --project=$PROJECT --zone=$GCE_ZONE --quiet
-
 ### Permission denied, so had to do this in the dashboard
 gcloud iam service-accounts remove-iam-policy-binding $SERVICE_ACCOUNT_FULL \
     --project=$PROJECT \
@@ -61,4 +61,4 @@ gcloud iam service-accounts remove-iam-policy-binding $SERVICE_ACCOUNT_FULL \
     --member=serviceAccount:$SERVICE_ACCOUNT_FULL \
     --role=$STORAGE_ROLE --quiet
 
-
+gcloud deployment-manager deployments delete $NFS_DEPLOYMENT_NAME

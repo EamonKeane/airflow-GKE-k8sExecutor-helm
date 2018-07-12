@@ -12,7 +12,7 @@ cd airflow-GKE-k8sExecutor-helm
 ```bash
 ACCOUNT=username@somedomain.com
 PROJECT="myorg-123456"
-GCE_ZONE="europe-west2-c"
+GCE_ZONE="europe-west2-a"
 REGION="europe-west2"
 ./gcloud-sql-k8s-install.sh \
     --project=$PROJECT \
@@ -40,13 +40,15 @@ echo "Visit http://127.0.0.1:8080 to use your application"
 kubectl port-forward $POD_NAME 8080:8080
 ```
 
+## SSL Webpage
 To expose the web server behind a https url with google oauth, please see the section below.
+
+## Permanent Storage
+Please see below for the [create an anchor](#anchors-in-markdown)
 
 ## Tidying up
 The easiest way to tidy-up is to delete the project and make a new one if re-deploying, however there are steps in tidying-up.sh to delete the individual resources.
 
-## Input
-This is a work in progress and the install script is a bit brittle. 
 ## Helm chart layout
 There are a few elements to the chart:
 * This chart only focuses on the kubernetes executor and is tailored to run on GKE, but
@@ -73,7 +75,6 @@ pprint(conf.as_dict(display_source=True,display_sensitive=True))
 ```
 
 ## Exposing oauth2 Google ingress with cert-manager and nginx-ingress
-
 
 ```bash
 helm install stable/cert-manager \
@@ -126,7 +127,7 @@ MY_AIRFLOW_DOMAIN=airflow.mysite.io
 ```yaml
 ingress:
   enabled: true
-  hosts: 
+  hosts:
     - $MY_DOMAIN
   tls:
   - hosts:
@@ -135,6 +136,7 @@ ingress:
 ```
 
 Create an oauth2 credential on Google Cloud Dashboard.
+
 ```bash
 PROJECT=myorg-123456
 OAUTH_APP_NAME=myorg-airflow
@@ -190,3 +192,53 @@ helm upgrade \
 ```
 
 Navigate to `https://$MY_AIRFLOW_DOMAIN`. Log into google, you should now see the dashboard UI.
+
+## NFS Server
+NFS_DEPLOYMENT_NAME=airflow
+NFS_ZONE=$GCE_ZONE
+NFS_INSTANCE_NAME=myorg-airflow
+STORAGE_NAME=dags
+
+* Navigate to: https://console.cloud.google.com/launcher/details/click-to-deploy-images/singlefs?q=nfs&project=$PROJECT
+* Click `LAUNCH ON COMPUTE ENGINE`
+* Enter NFS_DEPLOYMENT name as the deployment name
+* Enter NFS_ZONE  as the zone
+* Change the machine type to 1vCPU (this is sufficient)
+* Enter instance name as $INSTANCE_NAME
+* Leave the nfs folder as data unless you want to change it
+* Change the disk to SSD
+* Change the storage disk size to 10GB (or more if you have a lot of dags)
+* Change the filesystem to ext4
+* Click deploy
+
+Update your `my-values.yaml` with the below block:
+
+Get the internal IP address of your instance:
+
+```bash
+AIRFLOW_NFS_VM_NAME=$NFS_INSTANCE_NAME-vm
+
+INTERNAL_IP=$(gcloud compute instances describe $AIRFLOW_NFS_VM_NAME \
+                --zone=$NFS_ZONE \
+                --format='value(networkInterfaces[0].networkIP)')
+```
+
+```yaml
+dagVolume:
+  nfsServer: "$INTERNAL_IP"
+  nfsPath: "/$STORAGE_NAME"
+```
+
+## Setup Jenkins to sync dags
+jq ".nfs.name = \"$AIRFLOW_NFS_VM_NAME\"" Jenkinsfile.json > tmp.json && mv tmp.json Jenkinsfile.json
+jq ".nfs.internalIP = \"$INTERNAL_IP\"" Jenkinsfile.json > tmp.json && mv tmp.json Jenkinsfile.json
+jq ".nfs.dagFolder = \"$STORAGE_NAME\"" Jenkinsfile.json > tmp.json && mv tmp.json Jenkinsfile.json
+jq ".nfs.zone = \"$GCE_ZONE\"" Jenkinsfile.json > tmp.json && mv tmp.json Jenkinsfile.json
+
+In the Jenkinsfile pod template, replace `nfsVolume` variables to the following:
+
+```bash
+serverAddress: $INTERNAL_IP
+serverPath: $STORAGE_NAME
+```
+
