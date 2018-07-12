@@ -5,7 +5,7 @@ webScheduler:
   installScheduler: true
   dagsVolumeClaim: airflow-dags
   web:
-    authenticate: True
+    authenticate: False
     authBackend: airflow.contrib.auth.backends.google_auth
     googleAuthDomain: logistio.ie
     googleAuthSecret: google-oauth

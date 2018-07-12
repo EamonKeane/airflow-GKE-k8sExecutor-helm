@@ -1,6 +1,6 @@
 ## Cost-effect, scalable and stateless airflow
 
-Deploy an auto-scaling, stateless airflow cluster with the kubernetes executor and CloudSQL with an SSL airflow admin page, google Oauth2 login, and an NFS server for dags in under 20 minutes. Airflow logs are stored on a google cloud bucket. The monthly cost is approximately $150 fixed, plus $0.01 per vCPU hour <https://cloud.google.com/products/calculator/#id=22a2fecd-fc97-412f-8560-1ce1f70bb44f>:
+Deploy an auto-scaling, stateless airflow cluster with the kubernetes executor and CloudSQL with an SSL airflow admin page, google Oauth2 login, and an NFS server for dags in under 20 minutes. Airflow logs are stored on a google cloud bucket. The monthly cost is approximately $150 fixed, plus $0.015 per vCPU hour <https://cloud.google.com/products/calculator/#id=22a2fecd-fc97-412f-8560-1ce1f70bb44f>:
 
 * $30/month for pre-emptible scheduler/web server node
 * $70/month for 1 core CloudSQL instance
@@ -8,10 +8,10 @@ Deploy an auto-scaling, stateless airflow cluster with the kubernetes executor a
 
 Cost per CPU Hour:
 
-* Auto-scaling, pre-emptible `n1-highcpu-4` cost of $30/month, or $40/month assuming 75% utilisation
-* $30/(730 hours per month * 4 vCPU) = $0.01/vCPU hour
+* Auto-scaling, pre-emptible `n1-highcpu-4` cost of $30/month, or $40/month assuming 75% utilisation.
+* $40/(730 hours per month * 4 vCPU) = $0.015/vCPU hour
 
-This calculation assumes you have idempotent dags, for non-idempotent dags the cost is circa $250/month + $0.03/vCPU hour. This compares with approximately $300 + $0.20/(vCPU + DB) hour with Cloud Composer <https://cloud.google.com/composer/pricing>. This tutorial installs on the free Google account ($300 over 12 months).
+This calculation assumes you have idempotent dags, for non-idempotent dags the cost is circa $250/month + $0.05/vCPU hour. This compares with approximately $300 + $0.20/(vCPU + DB) hour with Cloud Composer <https://cloud.google.com/composer/pricing>. This tutorial installs on the free Google account ($300 over 12 months).
 
 ## Installation instructions
 
@@ -38,18 +38,24 @@ DATABASE_INSTANCE_NAME=airflow
     --database-instance-name=$DATABASE_INSTANCE_NAME
 ```
 
+## NFS Server for Dags
+
+Please see below for the installation instructions for installing a Google Cloud [NFS Server](#NFS-Server). This is used as a temporary solution until Google Cloud Filestore comes out (circa August/September 2018) <https://cloud.google.com/filestore/>. When this comes out it will be straightforward to change a few flags in the install script to achieve a HA setup (tolerant to a full `GCE_ZONE` being wiped out). When the NFS server has been set up, run the command below to complete an installation of airflow.
+
 ```bash
 helm upgrade \
     --install \
     --set google.project=$PROJECT \
     --set google.region=$REGION \
+    --values my-values.yaml \
     airflow \
     airflow
 ```
 
 You can change airflow/airflow.cfg and re-run the above `helm upgrade --install` command to redeploy the changes. This takes approximately 30 seconds.
 
-## To view the dashboard UI:
+Set `webScheduler.web.authenticate` to True and complete the section for SSL if you want this [SSL UI](#Exposing-oauth2-Google-ingress-with-cert-manager-and-nginx-ingress).
+Alternatively to view the Dashboard UI with no authentication or SSL view:
 
 ```bash
 export POD_NAME=$(kubectl get pods --namespace default -l "app=airflow,tier=web" -o jsonpath="{.items[0].metadata.name}")
@@ -57,29 +63,32 @@ echo "Visit http://127.0.0.1:8080 to use your application"
 kubectl port-forward $POD_NAME 8080:8080
 ```
 
-## SSL Webpage
-To expose the web server behind a https url with google oauth, please see the section below.
+## SSL Admin UI Webpage
 
-## NFS Server
-Please see below for the installation instructions for [NFS Server](#NFS-Server). This is used as a temporary solution until Google Cloud Filestore comes out (circa August/September 2018) <https://cloud.google.com/filestore/>. When this comes out it will be straightforward to change a few flags in the install script to achieve a HA setup (tolerant to a full GCE_ZONE being wiped out).
+To expose the web server behind a https url with google oauth, please see the section for google-oauth, cert-manager and nginx-ingress install instructions [SSL UI](#Exposing-oauth2-Google-ingress-with-cert-manager-and-nginx-ingress).
 
 ## Tidying up
+
 The easiest way to tidy-up is to delete the project and make a new one if re-deploying, however there are steps in tidying-up.sh to delete the individual resources.
 
 ## Helm chart layout
+
 There are a few elements to the chart:
-* This chart only focuses on the kubernetes executor and is tailored to run on GKE, but
-with some effort could be modified to run on premise or EKS/AKS.
+
+* This chart only focuses on the kubernetes executor and is tailored to run on GKE, but with some effort could be modified to run on premise or EKS/AKS.
 * A persistent disk is used for dags. You need to populate this separately using e.g. Jenkins.
 * Pre-install hooks add the airflow-RBAC account, dags PV, dags PVC and CloudSQL service. If the step fails at this point, you will need to remove everything before running helm again. See `tidying-up.sh` for details.
 * Pre-install and pre-upgrade hook to run the alembic migrations
 * Separate, templated airflow.cfg a change of which triggers a redeployment of both the web scheduler and the web server. This is due to the name of the configmap being appended with the current seconds (-{{ .Release.Time.Seconds }}) so a new configmap gets deployed each time. You may want to delete old configmaps from time to time.
 
 ## Debugging
+
 When debugging it is useful to set the executor to LocalExecutor. This can be done by the following:
+
 ```bash
 --set airflowCfg.core.executor=LocalExecutor
 ```
+
 This way you can see all the logs on one pod and can still test kubernetes using the Pod Operator (this requires a kubeconfig to be mounted on the scheduler pod, which is part of the setup).
 
 To view the applied configuration, shell into a pod and paste the following code:
@@ -135,7 +144,7 @@ airflow.mysite.io. 5      IN      A       35.230.155.177
 ...
 ```
 
-Create a file called `my-values.yaml` and populate it with the values below.
+Create a file called `my-values.yaml` using `my-values.example.yaml` template and populate it with the values below.
 
 ```bash
 MY_AIRFLOW_DOMAIN=airflow.mysite.io
@@ -159,18 +168,18 @@ PROJECT=myorg-123456
 OAUTH_APP_NAME=myorg-airflow
 ```
 
-* Navigate to https://console.cloud.google.com/apis/credentials?project=$PROJECT
+* Navigate to <https://console.cloud.google.com/apis/credentials?project=$PROJECT>
 * Click Create Credentials
 * Select OAuth Client ID
 * Select Web Application
 * Enter `$OAUTH_APP_NAME` as the Name
-* In authorized redirect URLs, enter https://$MY_DOMAIN/oauth2callback
+* In authorized redirect URLs, enter <https://$MY_DOMAIN/oauth2callback>
 * Click download json at the top of the page
 
 Get the file path of the json file:
 
 ```bash
-MY_OAUTH2_CREDENTIALS=/Users/../../client_secret_123456778910-oul980h2fk7om2o67aj5d0aum79pqv8a.apps.googleusercontent.com.json
+MY_OAUTH2_CREDENTIALS=...client_secret_123456778910-oul980h2fk7om2o67aj5d0aum79pqv8a.apps.googleusercontent.com.json
 ```
 
 Create a kubernetes secret to hold the client_id and client_secret (these will be set as env variables in the web pod)
@@ -219,7 +228,7 @@ NFS_INSTANCE_NAME=myorg-airflow
 STORAGE_NAME=dags
 ```
 
-* Navigate to: https://console.cloud.google.com/launcher/details/click-to-deploy-images/singlefs?q=nfs&project=$PROJECT
+* Navigate to: <https://console.cloud.google.com/launcher/details/click-to-deploy-images/singlefs?q=nfs&project=$PROJECT>
 * Click `LAUNCH ON COMPUTE ENGINE`
 * Enter `NFS_DEPLOYMENT` name as the deployment name
 * Enter `NFS_ZONE`  as the zone
