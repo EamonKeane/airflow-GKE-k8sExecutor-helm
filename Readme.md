@@ -11,7 +11,7 @@ Cost per CPU Hour:
 * Auto-scaling, pre-emptible `n1-highcpu-4` cost of $30/month, or $40/month assuming 75% utilisation
 * $30/(730 hours per month * 4 vCPU) = $0.01/vCPU hour
 
-This calculation assumes you have idempotent dags, for non-idempotent dags the cost is circa $250/month + $0.03/vCPU hour. This compares with approximately $300 + $0.20/(vCPU + DB) hour with Cloud Composer <https://cloud.google.com/composer/pricing>.
+This calculation assumes you have idempotent dags, for non-idempotent dags the cost is circa $250/month + $0.03/vCPU hour. This compares with approximately $300 + $0.20/(vCPU + DB) hour with Cloud Composer <https://cloud.google.com/composer/pricing>. This tutorial installs on the free Google account ($300 over 12 months).
 
 ## Installation instructions
 
@@ -25,10 +25,10 @@ cd airflow-GKE-k8sExecutor-helm
 ```
 
 ```bash
-ACCOUNT=username@somedomain.com
-PROJECT="myorg-123456"
-GCE_ZONE="europe-west2-a"
-REGION="europe-west2"
+ACCOUNT=$(gcloud config get-value core/account)
+PROJECT=$(gcloud config get-value core/project)
+REGION=$(gcloud config get-value compute/region)
+GCE_ZONE=$(gcloud config get-value compute/zone)
 DATABASE_INSTANCE_NAME=airflow
 ./gcloud-sql-k8s-install.sh \
     --project=$PROJECT \
