@@ -77,7 +77,7 @@ The easiest way to tidy-up is to delete the project and make a new one if re-dep
 There are a few elements to the chart:
 
 * This chart only focuses on the kubernetes executor and is tailored to run on GKE, but with some effort could be modified to run on premise or EKS/AKS.
-* A persistent disk is used for dags. You need to populate this separately using e.g. Jenkins.
+* An NFS server is used for dags as GCE does not have a ReadWriteMany option yet (Cloud Filestore coming soon will be similar to Amazon Elastic File System and Azure File System. You need to populate this separately using e.g. Jenkins.
 * Pre-install hooks add the airflow-RBAC account, dags PV, dags PVC and CloudSQL service. If the step fails at this point, you will need to remove everything before running helm again. See `tidying-up.sh` for details.
 * Pre-install and pre-upgrade hook to run the alembic migrations
 * Separate, templated airflow.cfg a change of which triggers a redeployment of both the web scheduler and the web server. This is due to the name of the configmap being appended with the current seconds (-{{ .Release.Time.Seconds }}) so a new configmap gets deployed each time. You may want to delete old configmaps from time to time.
