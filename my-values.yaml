@@ -20,7 +20,7 @@ dagVolume:
   installPV: true
   installPVC: true
   nfsServer: "10.154.0.7"
-  nfsPath: /icabbi-airflow
+  nfsPath: /dags
 
 createWorkerRBAC: true
 installPostgresService: true

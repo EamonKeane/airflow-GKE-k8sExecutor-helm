@@ -129,6 +129,7 @@ ingress:
     # Install nginx-ingress to have this annotation create an ingress
     # https://hub.kubeapps.com/charts/stable/nginx-ingress
     kubernetes.io/ingress.class: "nginx"
+    kubernetes.io/tls-acme: "true"
     # Use cert-manager to automatically provision acme certs
     # https://hub.kubeapps.com/charts/stable/cert-manager
     # This ensures that a user gets directed to the same webserver pod if using multiple

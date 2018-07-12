@@ -4,7 +4,7 @@ ACCOUNT=eamon@logistio.ie
 PROJECT="icabbi-202810"
 REGION="europe-west2"
 GCE_ZONE="europe-west2-a"
-DATABASE_INSTANCE_NAME=icabbiairflow4
+DATABASE_INSTANCE_NAME=airflow
 
 ./tidying-up.sh --project=$PROJECT \
                 --gce_zone=$GCE_ZONE \

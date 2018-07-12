@@ -5,7 +5,7 @@ REGION="europe-west2"
 
 TAG=0.3
 
-databaseInstance=airflow
+databaseInstance=airflow2
 
 helm upgrade \
     --install \
@@ -15,7 +15,6 @@ helm upgrade \
     --set google.databaseInstance=$databaseInstance \
     --set webScheduler.tag=$TAG \
     --set airflowCfg.kubernetes.workerContainerTag=$TAG \
-    --set webScheduler.dagsVolumeClaim=airflow-dags \
     --values my-values.yaml \
     airflow \
     airflow

@@ -1,4 +1,19 @@
-## Deploy an airflow kubernetes cluster with CloudSql and GKE in under 10 minutes
+## Cost-effect, scalable and stateless airflow
+
+Deploy an auto-scaling, stateless airflow cluster with the kubernetes executor and CloudSQL with an SSL airflow admin page, google Oauth2 login, and an NFS server for dags in under 20 minutes. Airflow logs are stored on a google cloud bucket. The monthly cost is approximately $150 fixed, plus $0.05 per CPU hour <https://cloud.google.com/products/calculator/#id=22a2fecd-fc97-412f-8560-1ce1f70bb44f>:
+
+* $30/month for pre-emptible scheduler/web server node
+* $70/month for 1 core CloudSQL instance
+* $50/month for logs and storage
+
+Cost per CPU Hour:
+
+* Auto-scaling, pre-emptible `n1-highcpu-4` cost of $30/month, or $40/month assuming 75% utilisation
+* $30/(730 hours per month * 4 vCPU) = $0.01/vCPU hour
+
+This calculation assumes you have idempotent dags, for non-idempotent dags the cost is circa $250/month + $0.03/vCPU hour. This compares with approximately $300 + $0.20/(vCPU + DB) hour with Cloud Composer <https://cloud.google.com/composer/pricing>.
+
+## Installation instructions
 
 ![airflow-gke-deployed](images/airflow-gke.png "Airflow GKE Helm")
 
@@ -14,11 +29,13 @@ ACCOUNT=username@somedomain.com
 PROJECT="myorg-123456"
 GCE_ZONE="europe-west2-a"
 REGION="europe-west2"
+DATABASE_INSTANCE_NAME=airflow
 ./gcloud-sql-k8s-install.sh \
     --project=$PROJECT \
     --account=$ACCOUNT \
     --gce_zone=$GCE_ZONE \
-    --region=$REGION
+    --region=$REGION \
+    --database-instance-name=$DATABASE_INSTANCE_NAME
 ```
 
 ```bash
@@ -43,8 +60,8 @@ kubectl port-forward $POD_NAME 8080:8080
 ## SSL Webpage
 To expose the web server behind a https url with google oauth, please see the section below.
 
-## Permanent Storage
-Please see below for the [NFS Server](#NFS-Server)
+## NFS Server
+Please see below for the installation instructions for [NFS Server](#NFS-Server). This is used as a temporary solution until Google Cloud Filestore comes out (circa August/September 2018) <https://cloud.google.com/filestore/>. When this comes out it will be straightforward to change a few flags in the install script to achieve a HA setup (tolerant to a full GCE_ZONE being wiped out).
 
 ## Tidying up
 The easiest way to tidy-up is to delete the project and make a new one if re-deploying, however there are steps in tidying-up.sh to delete the individual resources.
@@ -78,7 +95,7 @@ pprint(conf.as_dict(display_source=True,display_sensitive=True))
 
 ```bash
 helm install stable/cert-manager \
-    --name cert-manager
+    --name cert-manager \
     --namespace kube-system \
     --set ingressShim.defaultIssuerName=letsencrypt-prod \
     --set ingressShim.defaultIssuerKind=ClusterIssuer
@@ -194,15 +211,18 @@ helm upgrade \
 Navigate to `https://$MY_AIRFLOW_DOMAIN`. Log into google, you should now see the dashboard UI.
 
 ## NFS Server
+
+```bash
 NFS_DEPLOYMENT_NAME=airflow
 NFS_ZONE=$GCE_ZONE
 NFS_INSTANCE_NAME=myorg-airflow
 STORAGE_NAME=dags
+```
 
 * Navigate to: https://console.cloud.google.com/launcher/details/click-to-deploy-images/singlefs?q=nfs&project=$PROJECT
 * Click `LAUNCH ON COMPUTE ENGINE`
-* Enter NFS_DEPLOYMENT name as the deployment name
-* Enter NFS_ZONE  as the zone
+* Enter `NFS_DEPLOYMENT` name as the deployment name
+* Enter `NFS_ZONE`  as the zone
 * Change the machine type to 1vCPU (this is sufficient)
 * Enter instance name as $INSTANCE_NAME
 * Leave the nfs folder as data unless you want to change it
@@ -216,7 +236,7 @@ Update your `my-values.yaml` with the below block:
 Get the internal IP address of your instance:
 
 ```bash
-AIRFLOW_NFS_VM_NAME=$NFS_INSTANCE_NAME-vm
+AIRFLOW_NFS_VM_NAME=$NFS_DEPLOYMENT_NAME-vm
 
 INTERNAL_IP=$(gcloud compute instances describe $AIRFLOW_NFS_VM_NAME \
                 --zone=$NFS_ZONE \

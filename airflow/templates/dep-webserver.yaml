@@ -67,18 +67,18 @@ spec:
                  name: {{ .Values.webScheduler.web.googleAuthSecret }}
                  key: {{ .Values.webScheduler.web.googleAuthSecretClientSecretKey }}     
 {{ end }}   
-          livenessProbe:
-            httpGet:
-              path: /
-              port: 8080
-            initialDelaySeconds: 20
-            timeoutSeconds: 30
-          readinessProbe:
-            httpGet:
-              path: /
-              port: 8080
-            initialDelaySeconds: 20
-            timeoutSeconds: 30
+          # livenessProbe:
+          #   httpGet:
+          #     path: /
+          #     port: 8080
+          #   initialDelaySeconds: 20
+          #   timeoutSeconds: 30
+          # readinessProbe:
+          #   httpGet:
+          #     path: /
+          #     port: 8080
+          #   initialDelaySeconds: 20
+          #   timeoutSeconds: 30
           args: ["webserver"]
       volumes:
         - name: {{ .Values.webScheduler.airflowCfgConfigMap }}

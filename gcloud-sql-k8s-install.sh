@@ -35,7 +35,7 @@ case ${i} in
     -gce_zone=*|--gce_zone=*)
     GCE_ZONE="${i#*=}"
     ;;
-    -database_instance_name=*|--database_instance_name=*)
+    -database-instance-name=*|--database-instance-name=*)
     DATABASE_INSTANCE_NAME="${i#*=}"
     ;;
 esac
@@ -88,7 +88,7 @@ KUBERNETES_MACHINE_LABELS="app=airflow"
 MASTER_KUBERNETES_NODE_LABELS="app=airflow,pool=webScheduler"
 LEADER_POOL_NUM_NODES=1
 # 'Memory should be a multiple of 256MiB in zone europe-west2-a for custom machine type, while 2MiB is requested.'., invalidResourceUsage.
-MACHINE_TYPE="custom-3-2560"
+MACHINE_TYPE="n1-highcpu-4"
 
 # Airflow worker pool options
 CREATE_WORKER_POOL=TRUE
@@ -242,7 +242,7 @@ kubectl create secret generic airflow \
     --from-literal=gcs-log-folder=gs://$GOOGLE_LOG_STORAGE_BUCKET
 
 ## Install tiller RBAC for helm
-kubectl apply -f kubernetes-yaml/
+kubectl apply -f kubernetes-yaml/rbac-tiller.yaml
 ## Initialise Helm
 helm init --service-account tiller
 
