@@ -53,6 +53,8 @@ airflowCfg:
     dagsFolder: /usr/local/airflow/dags
     remoteLogConnId: google_cloud_default
     executor: KubernetesExecutor
+  scheduler:
+    schedulerHeartbeatSec: 5
   kubernetes:
     workerServiceAccountName: airflow-rbac
     # This should be the same as the webScheduler.airflowCfgConfigMap unless 

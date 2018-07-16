@@ -23,6 +23,6 @@ kubectl create secret generic airflow \
 CLIENT_ID=
 CLIENT_SECRET=
 
-kubectl create secret generic google_oauth \
+kubectl create secret generic google-oauth \
   --from-literal=client_id=$CLIENT_ID \
   --from-literal=client_secret=$CLIENT_SECRET

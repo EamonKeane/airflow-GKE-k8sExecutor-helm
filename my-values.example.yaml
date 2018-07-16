@@ -15,6 +15,7 @@ webScheduler:
     install: true
   scheduler:
     dagVolumeReadOnly: false
+    schedulerHeartbeatSec: 1
 
 dagVolume:
   installPV: true
