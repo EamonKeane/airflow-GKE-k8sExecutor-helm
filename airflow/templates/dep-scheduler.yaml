@@ -29,10 +29,13 @@ spec:
           image: {{ .Values.webScheduler.image }}:{{ .Values.webScheduler.tag }}
           imagePullPolicy: {{ .Values.webScheduler.imagePullPolicy }}
           volumeMounts:
-          - name: {{ .Values.webScheduler.dagsVolumeClaim }}
+          - name: {{ .Values.webScheduler.dagsVolumeClaim }} 
             mountPath: {{ .Values.webScheduler.dagsMountPath }}
-            subPath: {{ .Values.dagVolumeClaimSubPath }}
-            readOnly: {{ .Values.webScheduler.scheduler.dagVolumeReadOnly }}
+            subPath: {{ .Values.dagVolume.dagSubPath }}
+            readOnly: {{ .Values.webScheduler.web.dagVolumeReadOnly }}
+          - name: {{ .Values.webScheduler.dagsVolumeClaim }}
+            mountPath: {{ .Values.webScheduler.logsMountPath }}
+            subPath: {{ .Values.dagVolume.logSubPath }}
           - name: {{ .Values.webScheduler.airflowCfgConfigMap }}
             mountPath: {{ .Values.webScheduler.airflowCfgPath }}
             subPath: airflow.cfg

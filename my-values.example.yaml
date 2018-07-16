@@ -30,7 +30,9 @@ installCloudsqlProxyDeploy: true
 airflowCfg:
   core:
     executor: KubernetesExecutor
-
+  kubernetes:
+    namespace: airflow
+  kubernetesNodeSelectors: |-
 ingress:
   enabled: true
   hosts: 

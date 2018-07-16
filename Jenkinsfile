@@ -10,7 +10,7 @@ podTemplate(label: 'jenkins-pipeline',
         resourceRequestCpu: '200m', resourceLimitCpu: '300m', resourceRequestMemory: '256Mi', resourceLimitMemory: '512Mi')
     ],
     volumes:[
-        nfsVolume(mountPath: '/dags', serverAddress: '10.154.0.7', serverPath: '/dags', readOnly: false),
+        nfsVolume(mountPath: '/dags', serverAddress: '10.0.0.2', serverPath: '/airflow/dags', readOnly: false),
     ],
 ){
     node ('jenkins-pipeline') {

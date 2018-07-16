@@ -15,8 +15,19 @@ installCloudsqlProxyDeploy: true
 dagVolume:
   # Create a singe node NFS filer on Google Cloud Launcher:
   # https://cloud.google.com/launcher/docs/single-node-fileserver
-  nfsServer: 
-  nfsPath: /dags
+  # Alternatively create a filestore:
+  # https://cloud.google.com/filestore/docs/quickstart-gcloud
+  # gcloud beta filestore instances create $CLOUD_FILESTORE_NAME \
+  #   --project=$PROJECT
+  #   --location=$CLOUD_FILESTORE_LOCATION \
+  #   --tier=$CLOUD_FILESTORE_TIER \
+  #   --file-share=name=$CLOUD_FILESTORE_SHARE_NAME,capacity=$CLOUD_FILESTORE_CAPACITY \
+  #   --network=name=$CLOUD_FILESTORE_NETWORK,reserved-ip-range=$CLOUD_FILESTORE_RESERVED_IP
+  nfsServer: "10.0.0.2"
+  nfsPath: /airflow
+  # e.g dags stored at /airflow/dags
+  dagSubPath: dags
+  logSubPath: logs
   # This must be the same of smaller than the size of the PV you created
   size: 10Gi
   installPV: true
@@ -121,6 +132,7 @@ webScheduler:
   imagePullPolicy: IfNotPresent
   dagsVolumeClaim: airflow-dags
   dagsMountPath: /usr/local/airflow/dags
+  logsMountPath: /usr/local/airflow/logs
   dagsVolumeClaimSubPath:
   airflowCfgPath: /usr/local/airflow/airflow.cfg
   airflowCfgConfigMap: airflow-configmap

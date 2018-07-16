@@ -19,6 +19,8 @@ ACCOUNT=
 REGION=
 GCE_ZONE=
 DATABASE_INSTANCE_NAME=
+CLOUD_FILESTORE_LOCATION=
+HIGHLY_AVAILABLE=
 
 for i in "$@"
 do
@@ -38,13 +40,35 @@ case ${i} in
     -database-instance-name=*|--database-instance-name=*)
     DATABASE_INSTANCE_NAME="${i#*=}"
     ;;
+    -cloud-filestore-location=*|--cloud-filestore-location=*)
+    CLOUD_FILESTORE_LOCATION="${i#*=}"
+    ;;
+    -highly-available-=*|--highly-available=*)
+    HIGHLY_AVAILABLE="${i#*=}"
+    ;;
 esac
 done
 
+## Cloud filestore for dags
+#https://cloud.google.com/filestore/docs/quickstart-gcloud
+# If not creating, see the readme for how to create your own single-file NFS server
+CREATE_CLOUD_FILESTORE=TRUE
+CLOUD_FILESTORE_NAME=airflow-dags
+# The name of the mount directory on cloud filestore (referenced in helm chart)
+CLOUD_FILESTORE_SHARE_NAME="airflow"
+# Use default so that it is on the same VPC as most of your other resources
+CLOUD_FILESTORE_NETWORK="default"
+# Use the below range so that the address of 10.0.0.2 can be used in helm chart
+CLOUD_FILESTORE_RESERVED_IP="10.0.0.0/29"
+# Cloud filestore capacity (this is the lowest available ($250/mo))
+CLOUD_FILESTORE_CAPACITY=1TB
+# Premium tier requires at least three times the spend ($900/mo)
+CLOUD_FILESTORE_TIER=STANDARD
 
 ### Airflow Logs bucket. This must be a globally unique name, 
 ### so add some randomness such as myorg-airflow-1235
 ### https://cloud.google.com/storage/docs/quickstart-gsutil
+CREATE_GOOGLE_STORAGE_BUCKET=FALSE
 GOOGLE_LOG_STORAGE_BUCKET=$PROJECT-airflow
 
 ### Persistent disk name (used for dags)
@@ -57,6 +81,9 @@ DAGS_DISK_TYPE=pd-ssd
 CREATE_CLOUDSQL_DATABASE=TRUE
 ACTIVATION_POLICY=always
 AVAILABILITY_TYPE=zonal
+if [ HIGHLY_AVAILABLE = "TRUE" ] then;
+    AVAILABILITY_TYPE=regional
+fi
 CPU=1
 MEMORY=4GiB
 DATABASE_VERSION=POSTGRES_9_6
@@ -104,7 +131,8 @@ gcloud config set container/use_v1_api false
 
 ### Create the postgres database ###
 ### https://cloud.google.com/sdk/gcloud/reference/sql/instances/create
-if [ $CREATE_CLOUDSQL_DATABASE = "TRUE" ]; then
+if [ $CREATE_CLOUDSQL_DATABASE = "TRUE" ] && [
+then
 gcloud sql instances create $DATABASE_INSTANCE_NAME \
     --activation-policy=$ACTIVATION_POLICY \
     --availability-type=$AVAILABILITY_TYPE \
@@ -119,10 +147,14 @@ gcloud sql instances create $DATABASE_INSTANCE_NAME \
     --project=$PROJECT
 fi
 
+
+
 ### Create the airflow cluster. 
 ### The default node pool will be used only for the web server and scheduler, 
 ### This is set to be pre-emptible to lower costs
 ### https://cloud.google.com/sdk/gcloud/reference/container/clusters/create
+if [ HIGHLY_AVAILABLE = "FALSE" ] 
+then
 gcloud container clusters create $CLUSTER_NAME \
     --cluster-version=$CLUSTER_VERSION \
     --enable-autorepair \
@@ -141,6 +173,25 @@ gcloud container clusters create $CLUSTER_NAME \
     --scopes=$SCOPES \
     --account=$ACCOUNT \
     --project=$PROJECT
+else
+gcloud container clusters create $CLUSTER_NAME \
+    --cluster-version=$CLUSTER_VERSION \
+    --enable-autorepair \
+    --enable-autoupgrade \
+    --enable-legacy-authorization \
+    --image-type=$IMAGE_TYPE \
+    --labels=$KUBERNETES_MACHINE_LABELS \
+    --machine-type=$MACHINE_TYPE \
+    --preemptible \
+    --node-labels=$AIRFLOW_MASTER_KUBERNETES_NODE_LABELS \
+    --node-taints=$WORKER_POOL_NODE_TAINTS \
+    --node-version=$CLUSTER_VERSION \
+    --num-nodes=$LEADER_POOL_NUM_NODES \
+    --region=$REGION \
+    --scopes=$SCOPES \
+    --account=$ACCOUNT \
+    --project=$PROJECT
+fi
 
 ### Create the worker node pool. This is pre-emptible so ensure that your DAGs are idempotent. 
 ### If they are not, then remove the pre-emptible flag. 
@@ -148,7 +199,8 @@ gcloud container clusters create $CLUSTER_NAME \
 ### Further scheduler fine tuning can be done, if you intend to use the KubernetesPodOperator
 ### If using the KubernetesPodOperator, you can create a new pool, and use affinities in the Pod Spec
 ### to schedule against.
-if [ $CREATE_WORKER_POOL = "TRUE" ]; then
+if [ $CREATE_WORKER_POOL = "TRUE" ]
+then
 gcloud container node-pools create $WORKER_NODE_POOL_NAME \
     --cluster=$CLUSTER_NAME \
     --enable-autorepair \
@@ -197,7 +249,12 @@ gcloud iam service-accounts keys create $PWD/$CLOUDSQL_SERVICE_ACCOUNT.json \
 TEMP_KUBECONFIG_DIR=$PWD
 export KUBECONFIG=$TEMP_KUBECONFIG_DIR/$KUBERNETES_KUBECONFIG_SECRET
 gcloud config set container/use_client_certificate True
-gcloud container clusters get-credentials $CLUSTER_NAME --zone $GCE_ZONE --project $PROJECT
+if [ HIGHLY_AVAILABLE = "TRUE" ] 
+then
+  gcloud beta container clusters get-credentials $CLUSTER_NAME --region $REGION --project $PROJECT
+else
+  gcloud container clusters get-credentials $CLUSTER_NAME --zone $GCE_ZONE --project $PROJECT
+fi
 
 ### Set the default postgres user password, create the airflow user name and password and create the airflow database ###
 
@@ -242,12 +299,29 @@ kubectl create secret generic airflow \
     --from-literal=gcs-log-folder=gs://$GOOGLE_LOG_STORAGE_BUCKET
 
 ## Install tiller RBAC for helm
-kubectl apply -f kubernetes-yaml/rbac-tiller.yaml
-## Initialise Helm
+# http://zero-to-jupyterhub.readthedocs.io/en/latest/setup-helm.html
+kubectl --namespace kube-system create serviceaccount tiller
+kubectl create clusterrolebinding tiller \
+                --clusterrole cluster-admin \
+                --serviceaccount=kube-system:tiller
 helm init --service-account tiller
 
 # Make the storage bucket
+if [ $CREATE_GOOGLE_STORAGE_BUCKET = "TRUE" ]
+then
 gsutil mb -p $PROJECT -c regional -l $REGION gs://$GOOGLE_LOG_STORAGE_BUCKET/
+fi
+
+# Create the cloud filestore bucket
+if [ $CREATE_CLOUD_FILESTORE = "TRUE" ]
+then
+gcloud beta filestore instances create $CLOUD_FILESTORE_NAME \
+    --project=$PROJECT
+    --location=$CLOUD_FILESTORE_LOCATION \
+    --tier=$CLOUD_FILESTORE_TIER \
+    --file-share=name=$CLOUD_FILESTORE_SHARE_NAME,capacity=$CLOUD_FILESTORE_CAPACITY \
+    --network=name=$CLOUD_FILESTORE_NETWORK,reserved-ip-range=$CLOUD_FILESTORE_RESERVED_IP
+fi
 
 ### Remove the cloudsql service account and the kubeconfig file. They are persisted in the 
 ### kubernetes secret if you need to retrieve it. Run 'kubedecode airflow default' to decode.

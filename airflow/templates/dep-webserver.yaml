@@ -34,8 +34,11 @@ spec:
           volumeMounts:
           - name: {{ .Values.webScheduler.dagsVolumeClaim }} 
             mountPath: {{ .Values.webScheduler.dagsMountPath }}
-            subPath: {{ .Values.dagVolumeClaimSubPath }}
+            subPath: {{ .Values.dagVolume.dagSubPath }}
             readOnly: {{ .Values.webScheduler.web.dagVolumeReadOnly }}
+          - name: {{ .Values.webScheduler.dagsVolumeClaim }}
+            mountPath: {{ .Values.webScheduler.logsMountPath }}
+            subPath: {{ .Values.dagVolume.logSubPath }}
           - name: {{ .Values.webScheduler.airflowCfgConfigMap }}
             mountPath: {{ .Values.webScheduler.airflowCfgPath }}
             subPath: airflow.cfg
