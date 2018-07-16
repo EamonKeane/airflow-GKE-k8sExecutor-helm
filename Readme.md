@@ -278,3 +278,13 @@ serverPath: $STORAGE_NAME
 ```
 
 Set up Jenkins to trigger a build on each git push of this repository (see here for example instructions: <https://github.com/eamonkeane/jenkins-blue>). The dags folder will then appear synced in your webscheduler pods.  
+
+## Copy files to NFS
+
+```bash
+NAMESPACE=airflow
+DAGS_FOLDER_LOCAL=/Users/Eamon/kubernetes/airflow-GKE-k8sExecutor-helm/dags
+DAGS_FOLDER_REMOTE=/usr/local/airflow/dags
+export POD_NAME=$(kubectl get pods --namespace $NAMESPACE -l "app=airflow,tier=scheduler" -o jsonpath="{.items[0].metadata.name}")
+kubectl cp $DAGS_FOLDER_LOCAL $POD_NAME:$DAGS_FOLDER_REMOTE
+```
