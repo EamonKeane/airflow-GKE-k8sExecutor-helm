@@ -54,10 +54,13 @@ HIGHLY_AVAILABLE=TRUE
     --highly-available=$HIGHLY_AVAILABLE
 ```
 
+
+```bash
 CLOUD_FILESTORE_IP=$(gcloud beta filestore instances describe airflow \
                                                             --project=$PROJECT \
                                                             --location=$CLOUD_FILESTORE_ZONE \
                                                             --format json | jq .networks[0].ipAddresses[0] --raw-output)
+```
 
 For airflow to be able to write to Cloud Filestore, you need to change the permissions on the NFS(<https://cloud.google.com/filestore/docs/quickstart-console>).
 Follow the instructions below [Cloud Filestore Permissions](#Setting-file-permissions-on-Cloud-Filestore):
