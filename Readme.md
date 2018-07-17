@@ -1,5 +1,5 @@
 
-## Cost-effective, scalable and stateless airflow
+# Cost-effective, scalable and stateless airflow
 
 Deploy a highly-available, auto-scaling, stateless airflow cluster with the kubernetes executor and CloudSQL. This also includes an SSL airflow admin page, google Oauth2 login, and Cloud Filestore for storing dags and logs in under 20 minutes. The monthly fixed cost is approximately $180 at the cheapest to $500/month for a HA (default installation shown here, $240/month Cloud Filestore minimum), plus $0.015 per vCPU hour <https://cloud.google.com/products/calculator/#id=22a2fecd-fc97-412f-8560-1ce1f70bb44f>:
 
@@ -107,7 +107,7 @@ Then delete the VM:
 gcloud compute instances delete $VM_NAME --zone=$GCE_ZONE --project=$PROJECT
 ```
 
-## Install the helm chart:
+## Install the helm chart
 
 ```bash
 helm upgrade \
@@ -120,7 +120,7 @@ helm upgrade \
     airflow
 ```
 
-You can change airflow/airflow.cfg and re-run the above `helm upgrade --install` command to redeploy the changes. This takes approximately 30 seconds.
+You can change `airflow/airflow.cfg` and re-run the above `helm upgrade --install` command to redeploy the changes. This takes approximately 30 seconds.
 
 Quickly copy the example dags folder here to the NFS by using `kubectl cp`:
 
@@ -140,7 +140,7 @@ echo "Visit http://127.0.0.1:8080 to use your application"
 kubectl port-forward $POD_NAME 8080:8080
 ```
 
-Set `webScheduler.web.authenticate` to True and complete the section for SSL if you want this [SSL UI](#Exposing-oauth2-Google-ingress-with-cert-manager-and-nginx-ingress).
+Set `webScheduler.web.authenticate` to `True` and complete the section for SSL if you want this [SSL UI](#Exposing-oauth2-Google-ingress-with-cert-manager-and-nginx-ingress).
 Alternatively to view the Dashboard UI with no authentication or SSL view:
 
 ## SSL Admin UI Webpage
