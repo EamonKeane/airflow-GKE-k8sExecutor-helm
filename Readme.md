@@ -33,6 +33,14 @@ git clone https://github.com/EamonKeane/airflow-GKE-k8sExecutor-helm.git
 cd airflow-GKE-k8sExecutor-helm
 ```
 
+The following script by default installs:
+
+* A HA postgres CloudSql instance along with cloudsql service account, airflow database and password
+* A 3-zone regional kubernetes cluster
+* An auto-scaling worker pool for dag tasks (starts at zero, take 2 minutes to spin up when first dag is triggered)
+* A kubernetes secret containing the cluster's kubeconfig, airflow db username, airflow db passowrd, sql_alchemy_conn, fernet key, gcs-log-folder name, cloudsql service account
+* A Cloud Filestore instance
+
 ```bash
 # NOTE cloud filestore is only available in the following areas, so choose another region as necessary if your currently configured region is not listed
 # asia-eas1, europe-west1, europe-west3, europe-west4, us-central1
