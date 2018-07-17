@@ -1,11 +1,12 @@
 
-## Cost-effect, scalable and stateless airflow
+## Cost-effective, scalable and stateless airflow
 
-Deploy a highly-available, auto-scaling, stateless airflow cluster with the kubernetes executor and CloudSQL. This also includes an SSL airflow admin page, google Oauth2 login, and Cloud Filestore for storing dags and logs in under 20 minutes. The monthly fixed cost is approximately $150 at the cheapest to $500/month for HA, plus $0.015 per vCPU hour <https://cloud.google.com/products/calculator/#id=22a2fecd-fc97-412f-8560-1ce1f70bb44f>:
+Deploy a highly-available, auto-scaling, stateless airflow cluster with the kubernetes executor and CloudSQL. This also includes an SSL airflow admin page, google Oauth2 login, and Cloud Filestore for storing dags and logs in under 20 minutes. The monthly fixed cost is approximately $180 at the cheapest to $500/month for a HA (default installation shown here, $240/month Cloud Filestore minimum), plus $0.015 per vCPU hour <https://cloud.google.com/products/calculator/#id=22a2fecd-fc97-412f-8560-1ce1f70bb44f>:
 
   Cheapest:
 
 * $30/month for pre-emptible scheduler/web server node
+* $30/month for single node NFS
 * $70/month for 1 core CloudSQL instance
 * $50/month for logs and storage
 
