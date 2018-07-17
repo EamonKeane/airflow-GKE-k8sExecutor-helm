@@ -10,5 +10,3 @@ DATABASE_INSTANCE_NAME=airflow
                 --gce_zone=$GCE_ZONE \
                 --region=$REGION \
                 --database_instance_name=$DATABASE_INSTANCE_NAME
-
-

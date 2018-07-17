@@ -1,4 +1,4 @@
-{{- if .Values.dagVolume.installPV -}}
+{{- if .Values.logVolume.installPV -}}
 apiVersion: v1
 kind: PersistentVolume
 metadata:

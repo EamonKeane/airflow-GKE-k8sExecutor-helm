@@ -1,22 +1,29 @@
 
 ## Cost-effect, scalable and stateless airflow
 
-Deploy an auto-scaling, stateless airflow cluster with the kubernetes executor and CloudSQL with an SSL airflow admin page, google Oauth2 login, and an NFS server for dags in under 20 minutes. Airflow logs are stored on a google cloud bucket. The monthly cost is approximately $150 fixed, plus $0.015 per vCPU hour <https://cloud.google.com/products/calculator/#id=22a2fecd-fc97-412f-8560-1ce1f70bb44f>:
+Deploy a highly-available, auto-scaling, stateless airflow cluster with the kubernetes executor and CloudSQL. This also includes an SSL airflow admin page, google Oauth2 login, and Cloud Filestore for storing dags and logs in under 20 minutes. The monthly fixed cost is approximately $150 at the cheapest to $500/month for HA, plus $0.015 per vCPU hour <https://cloud.google.com/products/calculator/#id=22a2fecd-fc97-412f-8560-1ce1f70bb44f>:
+
+  Cheapest:
 
 * $30/month for pre-emptible scheduler/web server node
 * $70/month for 1 core CloudSQL instance
 * $50/month for logs and storage
 
-Cost per CPU Hour:
+  Cost per CPU Hour:
 
 * Auto-scaling, pre-emptible `n1-highcpu-4` cost of $30/month, or $40/month assuming 75% utilisation.
 * $40/(730 hours per month * 4 vCPU) = $0.015/vCPU hour
 
-This calculation assumes you have idempotent dags, for non-idempotent dags the cost is circa $250/month + $0.05/vCPU hour. This compares with approximately $300 + $0.20/(vCPU + DB) hour with Cloud Composer <https://cloud.google.com/composer/pricing>. This tutorial installs on the free Google account ($300 over 12 months).
+This calculation assumes you have idempotent dags, for non-idempotent dags the cost is circa $0.05/vCPU hour. This compares with approximately $300 + $0.20/(vCPU + DB)hour with Cloud Composer <https://cloud.google.com/composer/pricing>. This tutorial installs on the free Google account ($300 over 12 months).
 
 ## Installation instructions
 
 ![airflow-gke-deployed](images/airflow-gke.png "Airflow GKE Helm")
+
+Pre-requisites:
+
+* Ensure you have helm (v2.9.1), kubectl (v1.11.0), openssl, gcloud SDK (v208.0.1)
+* Ensure the Cloud SQL Admin API has been enabled on your project (<https://cloud.google.com/sql/docs/mysql/admin-api/>)
 
 Installation instructions:
 
@@ -24,12 +31,6 @@ Installation instructions:
 git clone https://github.com/EamonKeane/airflow-GKE-k8sExecutor-helm.git
 cd airflow-GKE-k8sExecutor-helm
 ```
-
-    -cloud-filestore-location=*|--cloud-filestore-location=*)
-    CLOUD_FILESTORE_LOCATION="${i#*=}"
-    ;;
-    -highly-available-=*|--highly-available=*)
-    HIGHLY_AVAILABLE="${i#*=}"
 
 ```bash
 # NOTE cloud filestore is only available in the following areas, so choose another region as necessary if your currently configured region is not listed
@@ -45,19 +46,64 @@ HIGHLY_AVAILABLE=TRUE
 ./gcloud-sql-k8s-install.sh \
     --project=$PROJECT \
     --account=$ACCOUNT \
-    --gce_zone=$GCE_ZONE \
+    --gce-zone=$GCE_ZONE \
     --region=$REGION \
     --database-instance-name=$DATABASE_INSTANCE_NAME \
-    --cloud-filestore-zone=$CLOUD_FILESTORE_LOCATION \
+    --cloud-filestore-zone=$CLOUD_FILESTORE_ZONE \
     --highly-available=$HIGHLY_AVAILABLE
 ```
 
-CLOUD_FILESTORE_IP=$(gcloud beta filestore instances describe airflow-dags \
+CLOUD_FILESTORE_IP=$(gcloud beta filestore instances describe airflow \
                                                             --project=$PROJECT \
                                                             --location=$CLOUD_FILESTORE_ZONE \
                                                             --format json | jq .networks[0].ipAddresses[0] --raw-output)
 
+For airflow to be able to write to Cloud Filestore, you need to change the permissions on the NFS(<https://cloud.google.com/filestore/docs/quickstart-console>).
+Follow the instructions below [Cloud Filestore Permissions](#Setting-file-permissions-on-Cloud-Filestore):
+
 If not using Cloud Filestore, see below for the installation instructions for installing a Google Cloud [NFS Server](#NFS-Server).
+
+# Setting file permissions on Cloud Filestore
+
+Create a VM to mount the file share and make the required changes.
+
+```bash
+VM_NAME=change-permissions
+gcloud compute --project=$PROJECT instances create $VM_NAME --zone=$GCE_ZONE
+```
+
+SSH into the machine
+
+```bash
+gcloud compute ssh $VM_NAME --zone=$GCE_ZONE --project=$PROJECT
+```
+
+Copy and paste the following into the terminal:
+
+```bash
+sudo apt-get -y update
+sudo apt-get -y install nfs-common
+```
+
+Then copy and paste the following (substituting your `$CLOUD_FILESTORE_IP` for the ip address):
+
+```bash
+CLOUD_FILESTORE_IP=
+sudo mkdir /mnt/test
+sudo mount $CLOUD_FILESTORE_IP:/airflow /mnt/test
+sudo mkdir /mnt/test/dags
+sudo mkdir /mnt/test/logs
+sudo chmod go+rw /mnt/test/dags
+sudo chmod go+rw /mnt/test/logs
+```
+
+Then delete the VM:
+
+```bash
+gcloud compute instances delete $VM_NAME --zone=$GCE_ZONE --project=$PROJECT
+```
+
+## Install the helm chart:
 
 ```bash
 helm upgrade \
@@ -72,14 +118,26 @@ helm upgrade \
 
 You can change airflow/airflow.cfg and re-run the above `helm upgrade --install` command to redeploy the changes. This takes approximately 30 seconds.
 
-Set `webScheduler.web.authenticate` to True and complete the section for SSL if you want this [SSL UI](#Exposing-oauth2-Google-ingress-with-cert-manager-and-nginx-ingress).
-Alternatively to view the Dashboard UI with no authentication or SSL view:
+Quickly copy the example dags folder here to the NFS by using `kubectl cp`:
+
+```bash
+NAMESPACE=default
+DAGS_FOLDER_LOCAL=/Users/Eamon/kubernetes/airflow-GKE-k8sExecutor-helm/dags
+DAGS_FOLDER_REMOTE=/usr/local/airflow/dags
+export POD_NAME=$(kubectl get pods --namespace $NAMESPACE -l "app=airflow,tier=scheduler" -o jsonpath="{.items[0].metadata.name}")
+kubectl cp $DAGS_FOLDER_LOCAL $POD_NAME:$DAGS_FOLDER_REMOTE
+```
+
+View the dashboard using the instructions below and you should see the examples in the dags folder of this repo.
 
 ```bash
 export POD_NAME=$(kubectl get pods --namespace default -l "app=airflow,tier=web" -o jsonpath="{.items[0].metadata.name}")
 echo "Visit http://127.0.0.1:8080 to use your application"
 kubectl port-forward $POD_NAME 8080:8080
 ```
+
+Set `webScheduler.web.authenticate` to True and complete the section for SSL if you want this [SSL UI](#Exposing-oauth2-Google-ingress-with-cert-manager-and-nginx-ingress).
+Alternatively to view the Dashboard UI with no authentication or SSL view:
 
 ## SSL Admin UI Webpage
 
@@ -94,8 +152,8 @@ The easiest way to tidy-up is to delete the project and make a new one if re-dep
 There are a few elements to the chart:
 
 * This chart only focuses on the kubernetes executor and is tailored to run on GKE, but with some effort could be modified to run on premise or EKS/AKS.
-* An NFS server is used for dags as GCE does not have a ReadWriteMany option yet (Cloud Filestore coming soon will be similar to Amazon Elastic File System and Azure File System. You need to populate this separately using e.g. Jenkins.
-* Pre-install hooks add the airflow-RBAC account, dags PV, dags PVC and CloudSQL service. If the step fails at this point, you will need to remove everything before running helm again. See `tidying-up.sh` for details.
+* Google Cloud Filestore (beta - equivalent of EFS and AFS on AWS and Azure respectively). You need to populate this separately using e.g. Jenkins (see sample jenkins file and instructions below [Jenkins](#Setup-Jenkins-to-sync-dags)).
+* Pre-install hooks add the airflow-RBAC account, dags/logs PV, dags/logs PVC and CloudSQL service. If the step fails at this point, you will need to remove everything before running helm again. See `tidying-up.sh` for details.
 * Pre-install and pre-upgrade hook to run the alembic migrations
 * Separate, templated airflow.cfg a change of which triggers a redeployment of both the web scheduler and the web server. This is due to the name of the configmap being appended with the current seconds (-{{ .Release.Time.Seconds }}) so a new configmap gets deployed each time. You may want to delete old configmaps from time to time.
 
@@ -256,16 +314,6 @@ serverPath: $STORAGE_NAME
 
 Set up Jenkins to trigger a build on each git push of this repository (see here for example instructions: <https://github.com/eamonkeane/jenkins-blue>). The dags folder will then appear synced in your webscheduler pods.  
 
-## Copy files to NFS
-
-```bash
-NAMESPACE=airflow
-DAGS_FOLDER_LOCAL=/Users/Eamon/kubernetes/airflow-GKE-k8sExecutor-helm/dags
-DAGS_FOLDER_REMOTE=/usr/local/airflow/dags
-export POD_NAME=$(kubectl get pods --namespace $NAMESPACE -l "app=airflow,tier=scheduler" -o jsonpath="{.items[0].metadata.name}")
-kubectl cp $DAGS_FOLDER_LOCAL $POD_NAME:$DAGS_FOLDER_REMOTE
-```
-
 ## NFS Server
 
 ```bash
@@ -306,14 +354,3 @@ dagVolume:
 ```
 
 Setup jenkins per the instructions [below](#Setup-Jenkins-to-sync-dags), or alternatively, copy the example pod operator in this repo to the $STORAGE_NAME of the NFS server (you can get connection instructions at this url <https://console.cloud.google.com/dm/deployments/details/$NFS_DEPLOYMENT_NAME?project=$PROJECT>)
-
-# Setting file permissions
-
-Shell into pod and change mode
-
-```bash
-sudo chmod go+rwx /dags
-sudo chmod go+rwx /logs
-sudo useradd airflow
-usermod -a -G root airflow
-```

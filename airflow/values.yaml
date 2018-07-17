@@ -5,7 +5,7 @@ namespace: default
 google: 
   project: 
   region: 
-  databaseInstance: airflow2
+  databaseInstance: airflow
   databaseName: airflow
 
 createWorkerRBAC: true

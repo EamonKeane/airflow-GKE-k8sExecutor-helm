@@ -1,0 +1,46 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx
+spec:
+  containers:
+  - name: nginx
+    image: nginx:1.7.9
+    ports:
+    - containerPort: 80
+    volumeMounts:
+      - name:  airflow-initial
+        mountPath:  /dags
+  volumes:
+    - name:  airflow-initial
+      persistentVolumeClaim:
+        claimName: airflow-initial
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: airflow-initial
+spec:
+  capacity:
+    storage: 10Gi
+  persistentVolumeReclaimPolicy: Retain
+  accessModes:
+  - ReadWriteMany
+  nfs:
+    server: 10.0.0.2
+    path: /airflow
+
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: airflow-initial
+spec:
+  storageClassName: ""
+  accessModes:
+  # accessModes do not enforce access right, but rather act as labels to match a PV to a PVC.
+    - "ReadWriteMany"
+  volumeName: airflow-initial
+  resources:
+    requests:
+      storage: 10Gi

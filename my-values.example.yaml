@@ -20,8 +20,14 @@ webScheduler:
 dagVolume:
   installPV: true
   installPVC: true
-  nfsServer: "12.345.6.7"
-  nfsPath: /dags
+  nfsServer: "10.0.0.2"
+  nfsPath: /airflow
+
+logVolume:
+  nfsServer: "10.0.0.2"
+  nfsPath: /airflow
+  installPV: true
+  installPVC: true
 
 createWorkerRBAC: true
 installPostgresService: true

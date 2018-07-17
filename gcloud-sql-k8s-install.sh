@@ -34,7 +34,7 @@ case ${i} in
     -region=*|--region=*)
     REGION="${i#*=}"
     ;;
-    -gce_zone=*|--gce_zone=*)
+    -gce-zone=*|--gce-zone=*)
     GCE_ZONE="${i#*=}"
     ;;
     -database-instance-name=*|--database-instance-name=*)
@@ -55,7 +55,7 @@ gcloud config set container/new_scopes_behavior true
 #https://cloud.google.com/filestore/docs/quickstart-gcloud
 # If not creating, see the readme for how to create your own single-file NFS server
 CREATE_CLOUD_FILESTORE=TRUE
-CLOUD_FILESTORE_NAME=airflow-dags
+CLOUD_FILESTORE_NAME=airflow
 # The name of the mount directory on cloud filestore (referenced in helm chart)
 CLOUD_FILESTORE_SHARE_NAME="airflow"
 # Use default so that it is on the same VPC as most of your other resources
@@ -74,7 +74,7 @@ CREATE_GOOGLE_STORAGE_BUCKET=FALSE
 GOOGLE_LOG_STORAGE_BUCKET=$PROJECT-airflow
 
 #### DATABASE OPTIONS ####
-CREATE_CLOUDSQL_DATABASE=TRUE
+CREATE_CLOUDSQL_DATABASE=FALSE
 ACTIVATION_POLICY=always
 if [ HIGHLY_AVAILABLE = "TRUE" ] 
 then
@@ -310,6 +310,7 @@ FERNET_KEY=$(dd if=/dev/urandom bs=32 count=1 2>/dev/null | openssl base64)
 # If you want to save the secret below for future reference
 # You can add a --output jsonpath-file=airflow-secret.json to the end
 # kubectl create secret generic --help
+# The google logs storage bucket is added for convenience but is ignored in the chart if .Values.airflowCfg.remoteLogging isn't set to true
 
 kubectl create secret generic airflow \
     --from-literal=fernet-key=$FERNET_KEY \
@@ -337,8 +338,8 @@ fi
 if [ $CREATE_CLOUD_FILESTORE = "TRUE" ]
 then
 gcloud beta filestore instances create $CLOUD_FILESTORE_NAME \
+    --location $CLOUD_FILESTORE_ZONE \
     --project=$PROJECT \
-    --location=$CLOUD_FILESTORE_ZONE \
     --tier=$CLOUD_FILESTORE_TIER \
     --file-share=name=$CLOUD_FILESTORE_SHARE_NAME,capacity=$CLOUD_FILESTORE_CAPACITY \
     --network=name=$CLOUD_FILESTORE_NETWORK,reserved-ip-range=$CLOUD_FILESTORE_RESERVED_IP

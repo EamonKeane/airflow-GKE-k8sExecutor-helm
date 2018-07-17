@@ -18,6 +18,10 @@ STORAGE_ROLE='roles/storage.admin'
 
 NFS_DEPLOYMENT_NAME=dags-airflow
 
+CLOUD_FILESTORE_INSTANCE=airflow
+CLOUD_FILESTORE_LOCATION=europe-west1-b
+PROJECT=icabbi-test-210421
+
 for i in "$@"
 do
 case ${i} in
@@ -48,7 +52,9 @@ gcloud iam service-accounts delete $SERVICE_ACCOUNT_NAME@$PROJECT.iam.gserviceac
 
 gsutil rm -r gs://$PROJECT-airflow
 
-gsutil rm -r gs://$PROJECT-airflow
+gcloud beta filestore instances delete $CLOUD_FILESTORE_INSTANCE \
+                                    --location=$CLOUD_FILESTORE_LOCATION \
+                                    --project=$PROJECT
 
 ### Permission denied, so had to do this in the dashboard
 gcloud iam service-accounts remove-iam-policy-binding $SERVICE_ACCOUNT_FULL \

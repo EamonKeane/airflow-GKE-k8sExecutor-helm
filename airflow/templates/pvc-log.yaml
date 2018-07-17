@@ -1,4 +1,4 @@
-{{- if .Values.dagVolume.installPVC -}}
+{{- if .Values.logVolume.installPVC -}}
 kind: PersistentVolumeClaim
 apiVersion: v1
 metadata:
