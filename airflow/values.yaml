@@ -5,12 +5,22 @@ namespace: default
 google: 
   project: 
   region: 
-  databaseInstance: airflow
+  databaseInstance: airflow2
   databaseName: airflow
 
 createWorkerRBAC: true
 installPostgresService: true
 installCloudsqlProxyDeploy: true
+
+logVolume:
+  nfsServer: "10.0.0.2"
+  nfsPath: /airflow
+  # e.g dags stored at /airflow/dags
+  logSubPath: logs
+  # This must be the same of smaller than the size of the PV you created
+  size: 10Gi
+  installPV: true
+  installPVC: true
 
 dagVolume:
   # Create a singe node NFS filer on Google Cloud Launcher:
@@ -27,7 +37,6 @@ dagVolume:
   nfsPath: /airflow
   # e.g dags stored at /airflow/dags
   dagSubPath: dags
-  logSubPath: logs
   # This must be the same of smaller than the size of the PV you created
   size: 10Gi
   installPV: true
@@ -62,6 +71,7 @@ secrets:
 airflowCfg:
   core:
     dagsFolder: /usr/local/airflow/dags
+    remoteLogging: False
     remoteLogConnId: google_cloud_default
     executor: KubernetesExecutor
   scheduler:
@@ -118,7 +128,7 @@ webScheduler:
       port: 8080
   scheduler:
     name: scheduler
-    dagVolumeReadOnly: True
+    dagVolumeReadOnly: False
     serviceAccountName: airflow-rbac
     kubeconfigMountPath: /root/airflow/kubeconfig
   preHook:
@@ -131,6 +141,7 @@ webScheduler:
   tag: "0.2"
   imagePullPolicy: IfNotPresent
   dagsVolumeClaim: airflow-dags
+  logsVolumeClaim: airflow-logs
   dagsMountPath: /usr/local/airflow/dags
   logsMountPath: /usr/local/airflow/logs
   dagsVolumeClaimSubPath:

@@ -14,6 +14,7 @@ kubectl delete cm --all
 kubectl delete pvc --all
 kubectl delete pv --all
 
+
 #####
 
 ## To delete stuck pod:

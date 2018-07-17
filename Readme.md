@@ -25,30 +25,47 @@ git clone https://github.com/EamonKeane/airflow-GKE-k8sExecutor-helm.git
 cd airflow-GKE-k8sExecutor-helm
 ```
 
+    -cloud-filestore-location=*|--cloud-filestore-location=*)
+    CLOUD_FILESTORE_LOCATION="${i#*=}"
+    ;;
+    -highly-available-=*|--highly-available=*)
+    HIGHLY_AVAILABLE="${i#*=}"
+
 ```bash
+# NOTE cloud filestore is only available in the following areas, so choose another region as necessary if your currently configured region is not listed
+# asia-eas1, europe-west1, europe-west3, europe-west4, us-central1
+# us-east1, us-west1, us-west2
 ACCOUNT=$(gcloud config get-value core/account)
 PROJECT=$(gcloud config get-value core/project)
 REGION=$(gcloud config get-value compute/region)
 GCE_ZONE=$(gcloud config get-value compute/zone)
 DATABASE_INSTANCE_NAME=airflow
+CLOUD_FILESTORE_ZONE=$(gcloud config get-value compute/region)
+HIGHLY_AVAILABLE=TRUE
 ./gcloud-sql-k8s-install.sh \
     --project=$PROJECT \
     --account=$ACCOUNT \
     --gce_zone=$GCE_ZONE \
     --region=$REGION \
-    --database-instance-name=$DATABASE_INSTANCE_NAME
+    --database-instance-name=$DATABASE_INSTANCE_NAME \
+    --cloud-filestore-zone=$CLOUD_FILESTORE_LOCATION \
+    --highly-available=$HIGHLY_AVAILABLE
 ```
 
-## NFS Server for Dags
+CLOUD_FILESTORE_IP=$(gcloud beta filestore instances describe airflow-dags \
+                                                            --project=$PROJECT \
+                                                            --location=$CLOUD_FILESTORE_ZONE \
+                                                            --format json | jq .networks[0].ipAddresses[0] --raw-output)
 
-Please see below for the installation instructions for installing a Google Cloud [NFS Server](#NFS-Server). This is used as a temporary solution until Google Cloud Filestore comes out (circa August/September 2018) <https://cloud.google.com/filestore/>. When this comes out it will be straightforward to change a few flags in the install script to achieve a HA setup (tolerant to a full `GCE_ZONE` being wiped out). When the NFS server has been set up, run the command below to complete an installation of airflow.
+If not using Cloud Filestore, see below for the installation instructions for installing a Google Cloud [NFS Server](#NFS-Server).
 
 ```bash
 helm upgrade \
     --install \
     --set google.project=$PROJECT \
     --set google.region=$REGION \
-    --values my-values.yaml \
+    --set dagVolume.nfsServer=$CLOUD_FILESTORE_IP \
+    --set logVolume.nfsServer=$CLOUD_FILESTORE_IP \
     airflow \
     airflow
 ```
@@ -220,6 +237,35 @@ helm upgrade \
 
 Navigate to `https://$MY_AIRFLOW_DOMAIN`. Log into google, you should now see the dashboard UI.
 
+
+## Setup Jenkins to sync dags
+
+```bash
+jq ".nfs.name = \"$AIRFLOW_NFS_VM_NAME\"" Jenkinsfile.json > tmp.json && mv tmp.json Jenkinsfile.json
+jq ".nfs.internalIP = \"$INTERNAL_IP\"" Jenkinsfile.json > tmp.json && mv tmp.json Jenkinsfile.json
+jq ".nfs.dagFolder = \"$STORAGE_NAME\"" Jenkinsfile.json > tmp.json && mv tmp.json Jenkinsfile.json
+jq ".nfs.zone = \"$GCE_ZONE\"" Jenkinsfile.json > tmp.json && mv tmp.json Jenkinsfile.json
+```
+
+In the Jenkinsfile pod template, replace `nfsVolume` variables to the following:
+
+```bash
+serverAddress: $INTERNAL_IP
+serverPath: $STORAGE_NAME
+```
+
+Set up Jenkins to trigger a build on each git push of this repository (see here for example instructions: <https://github.com/eamonkeane/jenkins-blue>). The dags folder will then appear synced in your webscheduler pods.  
+
+## Copy files to NFS
+
+```bash
+NAMESPACE=airflow
+DAGS_FOLDER_LOCAL=/Users/Eamon/kubernetes/airflow-GKE-k8sExecutor-helm/dags
+DAGS_FOLDER_REMOTE=/usr/local/airflow/dags
+export POD_NAME=$(kubectl get pods --namespace $NAMESPACE -l "app=airflow,tier=scheduler" -o jsonpath="{.items[0].metadata.name}")
+kubectl cp $DAGS_FOLDER_LOCAL $POD_NAME:$DAGS_FOLDER_REMOTE
+```
+
 ## NFS Server
 
 ```bash
@@ -261,30 +307,13 @@ dagVolume:
 
 Setup jenkins per the instructions [below](#Setup-Jenkins-to-sync-dags), or alternatively, copy the example pod operator in this repo to the $STORAGE_NAME of the NFS server (you can get connection instructions at this url <https://console.cloud.google.com/dm/deployments/details/$NFS_DEPLOYMENT_NAME?project=$PROJECT>)
 
-## Setup Jenkins to sync dags
+# Setting file permissions
+
+Shell into pod and change mode
 
 ```bash
-jq ".nfs.name = \"$AIRFLOW_NFS_VM_NAME\"" Jenkinsfile.json > tmp.json && mv tmp.json Jenkinsfile.json
-jq ".nfs.internalIP = \"$INTERNAL_IP\"" Jenkinsfile.json > tmp.json && mv tmp.json Jenkinsfile.json
-jq ".nfs.dagFolder = \"$STORAGE_NAME\"" Jenkinsfile.json > tmp.json && mv tmp.json Jenkinsfile.json
-jq ".nfs.zone = \"$GCE_ZONE\"" Jenkinsfile.json > tmp.json && mv tmp.json Jenkinsfile.json
-```
-
-In the Jenkinsfile pod template, replace `nfsVolume` variables to the following:
-
-```bash
-serverAddress: $INTERNAL_IP
-serverPath: $STORAGE_NAME
-```
-
-Set up Jenkins to trigger a build on each git push of this repository (see here for example instructions: <https://github.com/eamonkeane/jenkins-blue>). The dags folder will then appear synced in your webscheduler pods.  
-
-## Copy files to NFS
-
-```bash
-NAMESPACE=airflow
-DAGS_FOLDER_LOCAL=/Users/Eamon/kubernetes/airflow-GKE-k8sExecutor-helm/dags
-DAGS_FOLDER_REMOTE=/usr/local/airflow/dags
-export POD_NAME=$(kubectl get pods --namespace $NAMESPACE -l "app=airflow,tier=scheduler" -o jsonpath="{.items[0].metadata.name}")
-kubectl cp $DAGS_FOLDER_LOCAL $POD_NAME:$DAGS_FOLDER_REMOTE
+sudo chmod go+rwx /dags
+sudo chmod go+rwx /logs
+sudo useradd airflow
+usermod -a -G root airflow
 ```

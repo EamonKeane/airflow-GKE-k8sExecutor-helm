@@ -5,14 +5,14 @@ metadata:
   annotations:
     "helm.sh/hook": pre-install
     "helm.sh/hook-weight": "-40"
-  name: {{ .Values.webScheduler.dagsVolumeClaim}}
+  name: {{ .Values.webScheduler.logsVolumeClaim }}
 spec:
   capacity:
-    storage: {{ .Values.dagVolume.size }}
+    storage: {{ .Values.logVolume.size }}
   persistentVolumeReclaimPolicy: Retain
   accessModes:
-  - ReadOnlyMany
+  - ReadWriteMany
   nfs:
-    server: {{ .Values.dagVolume.nfsServer }}
-    path: {{ .Values.dagVolume.nfsPath }}
+    server: {{ .Values.logVolume.nfsServer }}
+    path: {{ .Values.logVolume.nfsPath }}
 {{- end -}}

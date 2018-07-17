@@ -36,9 +36,9 @@ spec:
             mountPath: {{ .Values.webScheduler.dagsMountPath }}
             subPath: {{ .Values.dagVolume.dagSubPath }}
             readOnly: {{ .Values.webScheduler.web.dagVolumeReadOnly }}
-          - name: {{ .Values.webScheduler.dagsVolumeClaim }}
+          - name: {{ .Values.webScheduler.logsVolumeClaim }}
             mountPath: {{ .Values.webScheduler.logsMountPath }}
-            subPath: {{ .Values.dagVolume.logSubPath }}
+            subPath: {{ .Values.logVolume.logSubPath }}
           - name: {{ .Values.webScheduler.airflowCfgConfigMap }}
             mountPath: {{ .Values.webScheduler.airflowCfgPath }}
             subPath: airflow.cfg
@@ -53,11 +53,13 @@ spec:
                secretKeyRef:
                   name: {{ .Values.secrets.name }}
                   key: {{ .Values.secrets.key.fernetKey }}
+{{- if .Values.airflowCfg.core.remoteLogging }}
            - name: AIRFLOW__CORE__REMOTE_BASE_LOG_FOLDER
              valueFrom:
                secretKeyRef:
                  name: {{ .Values.secrets.name }}
                  key: "{{ .Values.secrets.key.gcsLogFolder }}"
+{{ end }} 
 {{- if .Values.webScheduler.web.authenticate }}
            - name: AIRFLOW__GOOGLE__CLIENT_ID
              valueFrom:
@@ -91,4 +93,7 @@ spec:
           persistentVolumeClaim:
             claimName: {{ .Values.webScheduler.dagsVolumeClaim }} 
             readOnly: {{ .Values.webScheduler.web.dagVolumeReadOnly }}
+        - name: {{ .Values.webScheduler.logsVolumeClaim }}  
+          persistentVolumeClaim:
+            claimName: {{ .Values.webScheduler.logsVolumeClaim }} 
 {{- end -}}

@@ -19,7 +19,7 @@ ACCOUNT=
 REGION=
 GCE_ZONE=
 DATABASE_INSTANCE_NAME=
-CLOUD_FILESTORE_LOCATION=
+CLOUD_FILESTORE_ZONE=
 HIGHLY_AVAILABLE=
 
 for i in "$@"
@@ -40,14 +40,16 @@ case ${i} in
     -database-instance-name=*|--database-instance-name=*)
     DATABASE_INSTANCE_NAME="${i#*=}"
     ;;
-    -cloud-filestore-location=*|--cloud-filestore-location=*)
-    CLOUD_FILESTORE_LOCATION="${i#*=}"
+    -cloud-filestore-zone=*|--cloud-filestore-zone=*)
+    CLOUD_FILESTORE_ZONE="${i#*=}"
     ;;
     -highly-available-=*|--highly-available=*)
     HIGHLY_AVAILABLE="${i#*=}"
     ;;
 esac
 done
+
+gcloud config set container/new_scopes_behavior true
 
 ## Cloud filestore for dags
 #https://cloud.google.com/filestore/docs/quickstart-gcloud
@@ -71,19 +73,16 @@ CLOUD_FILESTORE_TIER=STANDARD
 CREATE_GOOGLE_STORAGE_BUCKET=FALSE
 GOOGLE_LOG_STORAGE_BUCKET=$PROJECT-airflow
 
-### Persistent disk name (used for dags)
-DAGS_DISK_NAME=airflow-dags
-DAGS_DISK_SIZE=10GB
-# gcloud compute disk-types list
-DAGS_DISK_TYPE=pd-ssd
-
 #### DATABASE OPTIONS ####
 CREATE_CLOUDSQL_DATABASE=TRUE
 ACTIVATION_POLICY=always
-AVAILABILITY_TYPE=zonal
-if [ HIGHLY_AVAILABLE = "TRUE" ] then;
-    AVAILABILITY_TYPE=regional
+if [ HIGHLY_AVAILABLE = "TRUE" ] 
+then
+  AVAILABILITY_TYPE=regional
+else
+  AVAILABILITY_TYPE=zonal
 fi
+
 CPU=1
 MEMORY=4GiB
 DATABASE_VERSION=POSTGRES_9_6
@@ -120,6 +119,7 @@ MACHINE_TYPE="n1-highcpu-4"
 # Airflow worker pool options
 CREATE_WORKER_POOL=TRUE
 WORKER_NODE_POOL_NAME="airflow-workers"
+# These labels should match the helm chart .Values.airflowCfg.kubernetesNodeSelectors if you want to scheduler k8s executor pods on the worker pool
 WORKER_KUBERNETES_NODE_LABELS="airflow=airflow_workers,pool=preemptible"
 WORKER_NODE_MACHINE_TYPE="n1-standard-4"
 WORKER_POOL_NUM_NODES=0
@@ -127,11 +127,11 @@ WORKER_POOL_MAX_NODES=6
 WORKER_POOL_MIN_NODES=0
 
 # Some of the kubernetes options require use of beta features.
-gcloud config set container/use_v1_api false
+# gcloud config set container/use_v1_api false
 
 ### Create the postgres database ###
 ### https://cloud.google.com/sdk/gcloud/reference/sql/instances/create
-if [ $CREATE_CLOUDSQL_DATABASE = "TRUE" ] && [
+if [ $CREATE_CLOUDSQL_DATABASE = "TRUE" ]
 then
 gcloud sql instances create $DATABASE_INSTANCE_NAME \
     --activation-policy=$ACTIVATION_POLICY \
@@ -147,8 +147,6 @@ gcloud sql instances create $DATABASE_INSTANCE_NAME \
     --project=$PROJECT
 fi
 
-
-
 ### Create the airflow cluster. 
 ### The default node pool will be used only for the web server and scheduler, 
 ### This is set to be pre-emptible to lower costs
@@ -161,6 +159,7 @@ gcloud container clusters create $CLUSTER_NAME \
     --enable-autoupgrade \
     --enable-legacy-authorization \
     --image-type=$IMAGE_TYPE \
+    --enable-ip-alias \
     --labels=$KUBERNETES_MACHINE_LABELS \
     --machine-type=$MACHINE_TYPE \
     --preemptible \
@@ -180,6 +179,7 @@ gcloud container clusters create $CLUSTER_NAME \
     --enable-autoupgrade \
     --enable-legacy-authorization \
     --image-type=$IMAGE_TYPE \
+    --enable-ip-alias \
     --labels=$KUBERNETES_MACHINE_LABELS \
     --machine-type=$MACHINE_TYPE \
     --preemptible \
@@ -201,24 +201,46 @@ fi
 ### to schedule against.
 if [ $CREATE_WORKER_POOL = "TRUE" ]
 then
-gcloud container node-pools create $WORKER_NODE_POOL_NAME \
-    --cluster=$CLUSTER_NAME \
-    --enable-autorepair \
-    --enable-autoupgrade \
-    --image-type=$IMAGE_TYPE \
-    --machine-type=$WORKER_NODE_MACHINE_TYPE \
-    --node-labels=$WORKER_KUBERNETES_NODE_LABELS \
-    --node-taints=$WORKER_POOL_NODE_TAINTS \
-    --node-version=$CLUSTER_VERSION \
-    --num-nodes=$WORKER_POOL_NUM_NODES \
-    --enable-autoscaling \
-    --preemptible \
-    --max-nodes=$WORKER_POOL_MAX_NODES \
-    --min-nodes=$WORKER_POOL_MIN_NODES \
-    --zone=$GCE_ZONE \
-    --scopes=$SCOPES \
-    --account=$ACCOUNT \
-    --project=$PROJECT
+  if [ $HIGHLY_AVAILABLE = "FALSE" ]
+  then
+    gcloud container node-pools create $WORKER_NODE_POOL_NAME \
+        --cluster=$CLUSTER_NAME \
+        --enable-autorepair \
+        --enable-autoupgrade \
+        --image-type=$IMAGE_TYPE \
+        --machine-type=$WORKER_NODE_MACHINE_TYPE \
+        --node-labels=$WORKER_KUBERNETES_NODE_LABELS \
+        --node-taints=$WORKER_POOL_NODE_TAINTS \
+        --node-version=$CLUSTER_VERSION \
+        --num-nodes=$WORKER_POOL_NUM_NODES \
+        --enable-autoscaling \
+        --preemptible \
+        --max-nodes=$WORKER_POOL_MAX_NODES \
+        --min-nodes=$WORKER_POOL_MIN_NODES \
+        --zone=$GCE_ZONE \
+        --scopes=$SCOPES \
+        --account=$ACCOUNT \
+        --project=$PROJECT
+  else
+    gcloud container node-pools create $WORKER_NODE_POOL_NAME \
+        --cluster=$CLUSTER_NAME \
+        --enable-autorepair \
+        --enable-autoupgrade \
+        --image-type=$IMAGE_TYPE \
+        --machine-type=$WORKER_NODE_MACHINE_TYPE \
+        --node-labels=$WORKER_KUBERNETES_NODE_LABELS \
+        --node-taints=$WORKER_POOL_NODE_TAINTS \
+        --node-version=$CLUSTER_VERSION \
+        --num-nodes=$WORKER_POOL_NUM_NODES \
+        --enable-autoscaling \
+        --preemptible \
+        --max-nodes=$WORKER_POOL_MAX_NODES \
+        --min-nodes=$WORKER_POOL_MIN_NODES \
+        --region=$REGION \
+        --scopes=$SCOPES \
+        --account=$ACCOUNT \
+        --project=$PROJECT
+  fi
 fi
 
 ### Create service account for cloudsql-proxy to connect to and create kubernetes secret 
@@ -249,7 +271,7 @@ gcloud iam service-accounts keys create $PWD/$CLOUDSQL_SERVICE_ACCOUNT.json \
 TEMP_KUBECONFIG_DIR=$PWD
 export KUBECONFIG=$TEMP_KUBECONFIG_DIR/$KUBERNETES_KUBECONFIG_SECRET
 gcloud config set container/use_client_certificate True
-if [ HIGHLY_AVAILABLE = "TRUE" ] 
+if [ $HIGHLY_AVAILABLE = "TRUE" ] 
 then
   gcloud beta container clusters get-credentials $CLUSTER_NAME --region $REGION --project $PROJECT
 else
@@ -283,8 +305,7 @@ gcloud sql databases create $AIRFLOW_DATABASE_NAME \
 SQL_ALCHEMY_CONN=postgresql+psycopg2://$AIRFLOW_DATABASE_USER:$AIRFLOW_DATABASE_USER_PASSWORD@$KUBERNETES_POSTGRES_CLOUDSQLPROXY_SERVICE:$KUBERNETES_POSTGRES_CLOUDSQLPROXY_PORT/$AIRFLOW_DATABASE_NAME
 
 # Creat the fernet key which is needed to decrypt database the database
-# Requires pip install cryptography
-FERNET_KEY=$(python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())")
+FERNET_KEY=$(dd if=/dev/urandom bs=32 count=1 2>/dev/null | openssl base64)
 
 # If you want to save the secret below for future reference
 # You can add a --output jsonpath-file=airflow-secret.json to the end
@@ -312,12 +333,12 @@ then
 gsutil mb -p $PROJECT -c regional -l $REGION gs://$GOOGLE_LOG_STORAGE_BUCKET/
 fi
 
-# Create the cloud filestore bucket
+# Create the cloud filestore instance
 if [ $CREATE_CLOUD_FILESTORE = "TRUE" ]
 then
 gcloud beta filestore instances create $CLOUD_FILESTORE_NAME \
-    --project=$PROJECT
-    --location=$CLOUD_FILESTORE_LOCATION \
+    --project=$PROJECT \
+    --location=$CLOUD_FILESTORE_ZONE \
     --tier=$CLOUD_FILESTORE_TIER \
     --file-share=name=$CLOUD_FILESTORE_SHARE_NAME,capacity=$CLOUD_FILESTORE_CAPACITY \
     --network=name=$CLOUD_FILESTORE_NETWORK,reserved-ip-range=$CLOUD_FILESTORE_RESERVED_IP

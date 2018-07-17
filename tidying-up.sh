@@ -12,8 +12,6 @@ CLUSTER_NAME="airflow"
 
 DATABASE_INSTANCE_NAME="airflow"
 
-DAGS_DISK_NAME="airflow-dags"
-
 SERVICE_ACCOUNT_NAME=airflowcloudsql
 CLOUDSQL_ROLE='roles/cloudsql.admin'
 STORAGE_ROLE='roles/storage.admin'
@@ -47,6 +45,8 @@ gcloud sql instances delete $DATABASE_INSTANCE_NAME --project=$PROJECT --async -
 gcloud container clusters delete $CLUSTER_NAME --project=$PROJECT --zone=$GCE_ZONE --async --quiet
 
 gcloud iam service-accounts delete $SERVICE_ACCOUNT_NAME@$PROJECT.iam.gserviceaccount.com --quiet
+
+gsutil rm -r gs://$PROJECT-airflow
 
 gsutil rm -r gs://$PROJECT-airflow
 
