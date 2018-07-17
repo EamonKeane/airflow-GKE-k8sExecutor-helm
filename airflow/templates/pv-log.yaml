@@ -1,0 +1,18 @@
+{{- if .Values.logVolume.installPV -}}
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  annotations:
+    "helm.sh/hook": pre-install
+    "helm.sh/hook-weight": "-40"
+  name: {{ .Values.webScheduler.logsVolumeClaim }}
+spec:
+  capacity:
+    storage: {{ .Values.logVolume.size }}
+  persistentVolumeReclaimPolicy: Retain
+  accessModes:
+  - ReadWriteMany
+  nfs:
+    server: {{ .Values.logVolume.nfsServer }}
+    path: {{ .Values.logVolume.nfsPath }}
+{{- end -}}

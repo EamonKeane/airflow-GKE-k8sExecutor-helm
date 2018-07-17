@@ -29,10 +29,13 @@ spec:
           image: {{ .Values.webScheduler.image }}:{{ .Values.webScheduler.tag }}
           imagePullPolicy: {{ .Values.webScheduler.imagePullPolicy }}
           volumeMounts:
-          - name: {{ .Values.webScheduler.dagsVolumeClaim }}
+          - name: {{ .Values.webScheduler.dagsVolumeClaim }} 
             mountPath: {{ .Values.webScheduler.dagsMountPath }}
-            subPath: {{ .Values.dagVolumeClaimSubPath }}
+            subPath: {{ .Values.dagVolume.dagSubPath }}
             readOnly: {{ .Values.webScheduler.scheduler.dagVolumeReadOnly }}
+          - name: {{ .Values.webScheduler.logsVolumeClaim }}
+            mountPath: {{ .Values.webScheduler.logsMountPath }}
+            subPath: {{ .Values.logVolume.logSubPath }}
           - name: {{ .Values.webScheduler.airflowCfgConfigMap }}
             mountPath: {{ .Values.webScheduler.airflowCfgPath }}
             subPath: airflow.cfg
@@ -49,11 +52,13 @@ spec:
                secretKeyRef:
                   name: {{ .Values.secrets.name }}
                   key: {{ .Values.secrets.key.fernetKey }}
+{{- if .Values.airflowCfg.core.remoteLogging }}
            - name: AIRFLOW__CORE__REMOTE_BASE_LOG_FOLDER
              valueFrom:
                secretKeyRef:
-                  name: {{ .Values.secrets.name }}
-                  key: {{ .Values.secrets.key.gcsLogFolder }}      
+                 name: {{ .Values.secrets.name }}
+                 key: "{{ .Values.secrets.key.gcsLogFolder }}"
+{{ end }}    
           args: ["scheduler"]
       volumes:
         - name: {{ .Values.webScheduler.airflowCfgConfigMap }}
@@ -63,6 +68,9 @@ spec:
           persistentVolumeClaim:
             claimName: {{ .Values.webScheduler.dagsVolumeClaim }} 
             readOnly: {{ .Values.webScheduler.scheduler.dagVolumeReadOnly }}
+        - name: {{ .Values.webScheduler.logsVolumeClaim }}  
+          persistentVolumeClaim:
+            claimName: {{ .Values.webScheduler.logsVolumeClaim }} 
         - name: {{ .Values.secrets.key.kubeconfig }}
           secret:
             secretName: {{ .Values.secrets.name }}

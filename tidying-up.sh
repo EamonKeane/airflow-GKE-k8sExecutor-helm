@@ -12,13 +12,15 @@ CLUSTER_NAME="airflow"
 
 DATABASE_INSTANCE_NAME="airflow"
 
-DAGS_DISK_NAME="airflow-dags"
-
 SERVICE_ACCOUNT_NAME=airflowcloudsql
 CLOUDSQL_ROLE='roles/cloudsql.admin'
 STORAGE_ROLE='roles/storage.admin'
 
 NFS_DEPLOYMENT_NAME=dags-airflow
+
+CLOUD_FILESTORE_INSTANCE=airflow
+CLOUD_FILESTORE_LOCATION=europe-west1-b
+PROJECT=icabbi-test-210421
 
 for i in "$@"
 do
@@ -49,6 +51,10 @@ gcloud container clusters delete $CLUSTER_NAME --project=$PROJECT --zone=$GCE_ZO
 gcloud iam service-accounts delete $SERVICE_ACCOUNT_NAME@$PROJECT.iam.gserviceaccount.com --quiet
 
 gsutil rm -r gs://$PROJECT-airflow
+
+gcloud beta filestore instances delete $CLOUD_FILESTORE_INSTANCE \
+                                    --location=$CLOUD_FILESTORE_LOCATION \
+                                    --project=$PROJECT
 
 ### Permission denied, so had to do this in the dashboard
 gcloud iam service-accounts remove-iam-policy-binding $SERVICE_ACCOUNT_FULL \

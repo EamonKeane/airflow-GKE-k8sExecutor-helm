@@ -17,7 +17,7 @@ default_args = {
 }
 
 dag = DAG(
-    'kubernetes_test_pod_operator', default_args=default_args, schedule_interval=timedelta(minutes=10))
+    'kubernetes_test_podv3', default_args=default_args, schedule_interval=timedelta(minutes=10))
 
 start = DummyOperator(task_id='run_this_first', dag=dag)
 

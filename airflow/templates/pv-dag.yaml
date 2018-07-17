@@ -11,7 +11,7 @@ spec:
     storage: {{ .Values.dagVolume.size }}
   persistentVolumeReclaimPolicy: Retain
   accessModes:
-  - ReadWriteMany
+  - ReadOnlyMany
   nfs:
     server: {{ .Values.dagVolume.nfsServer }}
     path: {{ .Values.dagVolume.nfsPath }}

@@ -1,11 +1,11 @@
-{{- if .Values.dagVolume.installPVC -}}
+{{- if .Values.logVolume.installPVC -}}
 kind: PersistentVolumeClaim
 apiVersion: v1
 metadata:
   annotations:
     "helm.sh/hook": pre-install
     "helm.sh/hook-weight": "-35"
-  name: {{ .Values.webScheduler.dagsVolumeClaim }}
+  name: {{ .Values.webScheduler.logsVolumeClaim }}
   labels:
     app: {{ template "airflow.name" . }}
     chart: {{ template "airflow.chart" . }}
@@ -18,10 +18,9 @@ spec:
   # https://cloud.google.com/kubernetes-engine/docs/concepts/persistent-volumes
   storageClassName: ""
   accessModes:
-  # accessModes do not enforce access right, but rather act as labels to match a PV to a PVC.
-    - "ReadOnlyMany"
-  volumeName: {{ .Values.webScheduler.dagsVolumeClaim }}
+    - "ReadWriteMany"
+  volumeName: {{ .Values.webScheduler.logsVolumeClaim }}
   resources:
     requests:
-      storage: {{ .Values.dagVolume.size }}
+      storage: {{ .Values.logVolume.size }}
 {{- end -}}

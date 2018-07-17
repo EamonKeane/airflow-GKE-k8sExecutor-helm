@@ -12,11 +12,31 @@ createWorkerRBAC: true
 installPostgresService: true
 installCloudsqlProxyDeploy: true
 
+logVolume:
+  nfsServer: "10.0.0.2"
+  nfsPath: /airflow
+  # e.g dags stored at /airflow/dags
+  logSubPath: logs
+  # This must be the same of smaller than the size of the PV you created
+  size: 10Gi
+  installPV: true
+  installPVC: true
+
 dagVolume:
   # Create a singe node NFS filer on Google Cloud Launcher:
   # https://cloud.google.com/launcher/docs/single-node-fileserver
-  nfsServer: 
-  nfsPath: /dags
+  # Alternatively create a filestore:
+  # https://cloud.google.com/filestore/docs/quickstart-gcloud
+  # gcloud beta filestore instances create $CLOUD_FILESTORE_NAME \
+  #   --project=$PROJECT
+  #   --location=$CLOUD_FILESTORE_LOCATION \
+  #   --tier=$CLOUD_FILESTORE_TIER \
+  #   --file-share=name=$CLOUD_FILESTORE_SHARE_NAME,capacity=$CLOUD_FILESTORE_CAPACITY \
+  #   --network=name=$CLOUD_FILESTORE_NETWORK,reserved-ip-range=$CLOUD_FILESTORE_RESERVED_IP
+  nfsServer: "10.0.0.2"
+  nfsPath: /airflow
+  # e.g dags stored at /airflow/dags
+  dagSubPath: dags
   # This must be the same of smaller than the size of the PV you created
   size: 10Gi
   installPV: true
@@ -51,8 +71,11 @@ secrets:
 airflowCfg:
   core:
     dagsFolder: /usr/local/airflow/dags
+    remoteLogging: False
     remoteLogConnId: google_cloud_default
     executor: KubernetesExecutor
+  scheduler:
+    schedulerHeartbeatSec: 5
   kubernetes:
     workerServiceAccountName: airflow-rbac
     # This should be the same as the webScheduler.airflowCfgConfigMap unless 
@@ -105,7 +128,7 @@ webScheduler:
       port: 8080
   scheduler:
     name: scheduler
-    dagVolumeReadOnly: True
+    dagVolumeReadOnly: False
     serviceAccountName: airflow-rbac
     kubeconfigMountPath: /root/airflow/kubeconfig
   preHook:
@@ -118,7 +141,9 @@ webScheduler:
   tag: "0.2"
   imagePullPolicy: IfNotPresent
   dagsVolumeClaim: airflow-dags
+  logsVolumeClaim: airflow-logs
   dagsMountPath: /usr/local/airflow/dags
+  logsMountPath: /usr/local/airflow/logs
   dagsVolumeClaimSubPath:
   airflowCfgPath: /usr/local/airflow/airflow.cfg
   airflowCfgConfigMap: airflow-configmap
