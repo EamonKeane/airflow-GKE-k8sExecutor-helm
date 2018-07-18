@@ -62,7 +62,6 @@ HIGHLY_AVAILABLE=TRUE
     --highly-available=$HIGHLY_AVAILABLE
 ```
 
-
 ```bash
 CLOUD_FILESTORE_IP=$(gcloud beta filestore instances describe airflow \
                                       --project=$PROJECT \
