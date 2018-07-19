@@ -4,6 +4,7 @@ kind: Deployment
 metadata:
   name: {{ template "airflow.webserver.fullname" . }}
   labels:
+    app.kubernetes.io/name: {{ template "airflow.name" . }}
     app: {{ template "airflow.name" . }}
     chart: {{ template "airflow.chart" . }}
     release: {{ .Release.Name }}

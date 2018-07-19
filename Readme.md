@@ -133,10 +133,17 @@ Quickly copy the example dags folder here to the NFS by using `kubectl cp`:
 
 ```bash
 NAMESPACE=default
-DAGS_FOLDER_LOCAL=/Users/Eamon/kubernetes/airflow-GKE-k8sExecutor-helm/dags
+GIT_FOLDER_ROOT=/Users/Eamon/kubernetes
+DAGS_FOLDER_LOCAL=airflow-GKE-k8sExecutor-helm/dags
 DAGS_FOLDER_REMOTE=/usr/local/airflow/dags
 export POD_NAME=$(kubectl get pods --namespace $NAMESPACE -l "app=airflow,tier=scheduler" -o jsonpath="{.items[0].metadata.name}")
-kubectl cp $DAGS_FOLDER_LOCAL $POD_NAME:$DAGS_FOLDER_REMOTE
+kubectl cp $GIT_FOLDER_ROOT/$DAGS_FOLDER_LOCAL/ $NAMESPACE/$POD_NAME:$DAGS_FOLDER_REMOTE
+```
+
+Alternatively run the script below:
+
+```bash
+./scripts/copy-dags-to-nfs.sh
 ```
 
 View the dashboard using the instructions below and you should see the examples in the dags folder of this repo.
@@ -331,7 +338,7 @@ Set up Jenkins to trigger a build on each git push of this repository (see here 
 NFS_DEPLOYMENT_NAME=airflow
 NFS_ZONE=$GCE_ZONE
 NFS_INSTANCE_NAME=myorg-airflow
-STORAGE_NAME=dags
+STORAGE_NAME=airflow
 ```
 
 * Navigate to: <https://console.cloud.google.com/launcher/details/click-to-deploy-images/singlefs?q=nfs&project=$PROJECT>

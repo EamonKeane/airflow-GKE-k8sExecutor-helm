@@ -8,6 +8,7 @@ metadata:
     "helm.sh/hook-weight": "-5"
     "helm.sh/hook-delete-policy": hook-succeeded
   labels:
+    app.kubernetes.io/name: {{ template "airflow.name" . }}
     app: {{ template "airflow.name" . }}
     chart: {{ template "airflow.chart" . }}
     release: {{ .Release.Name }}

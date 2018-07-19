@@ -23,7 +23,7 @@ start = DummyOperator(task_id='run_this_first', dag=dag)
 
 volume_mount = VolumeMount('airflow-dags',
                             mount_path='/dags',
-                            sub_path=None,
+                            sub_path='dags',
                             read_only=True)
 
 volume_config = {
@@ -36,9 +36,9 @@ volume_config = {
 volume = Volume(name='airflow-dags', configs=volume_config)
 file_path = "/root/kubeconfig/kubeconfig"
 
-passing = KubernetesPodOperator(namespace='airflow4',
+passing = KubernetesPodOperator(namespace='airflow',
                           image="python:3.6",
-                          cmds=["python", "dags/test-python.py"],
+                          cmds=["python", "/dags/test-python.py"],
                           labels={"foo": "bar"},
                           name="passing-test",
                           task_id="passing-task",

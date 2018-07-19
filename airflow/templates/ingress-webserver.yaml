@@ -6,6 +6,7 @@ kind: Ingress
 metadata:
   name: {{ $fullName }}
   labels:
+    app.kubernetes.io/name: {{ template "airflow.name" . }}
     app: {{ template "airflow.name" . }}
     chart: {{ template "airflow.chart" . }}
     release: {{ .Release.Name }}

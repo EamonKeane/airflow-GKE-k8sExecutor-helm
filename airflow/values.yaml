@@ -28,7 +28,7 @@ dagVolume:
   # Alternatively create a filestore:
   # https://cloud.google.com/filestore/docs/quickstart-gcloud
   # gcloud beta filestore instances create $CLOUD_FILESTORE_NAME \
-  #   --project=$PROJECT
+  #   --project=$PROJECT \
   #   --location=$CLOUD_FILESTORE_LOCATION \
   #   --tier=$CLOUD_FILESTORE_TIER \
   #   --file-share=name=$CLOUD_FILESTORE_SHARE_NAME,capacity=$CLOUD_FILESTORE_CAPACITY \
@@ -78,6 +78,7 @@ airflowCfg:
     schedulerHeartbeatSec: 5
   kubernetes:
     workerServiceAccountName: airflow-rbac
+    deleteWorkerPods: True
     # This should be the same as the webScheduler.airflowCfgConfigMap unless 
     # you are creating a second configmap. 
     # There is currently only one templated (airflow-cfg-configmap.yaml). 

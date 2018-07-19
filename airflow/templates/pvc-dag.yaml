@@ -7,6 +7,7 @@ metadata:
     "helm.sh/hook-weight": "-35"
   name: {{ .Values.webScheduler.dagsVolumeClaim }}
   labels:
+    app.kubernetes.io/name: {{ template "airflow.name" . }}
     app: {{ template "airflow.name" . }}
     chart: {{ template "airflow.chart" . }}
     release: {{ .Release.Name }}
