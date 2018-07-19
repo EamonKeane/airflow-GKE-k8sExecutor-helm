@@ -427,6 +427,7 @@ USERNAME=admin
 PASSWORD=
 
 kubectl get secret $GRAF_PROM_APP_INSTANCE_NAME-grafana \
+                   --namespace=$GRAF_PROM_DEPLOYMENT_NAMESPACE \
                   -o jsonpath='{.data.admin-password}' \
                      | base64 --decode | pbcopy
 ```
