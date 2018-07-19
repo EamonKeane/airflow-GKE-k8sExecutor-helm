@@ -154,16 +154,13 @@ echo "Visit http://127.0.0.1:8080 to use your application"
 kubectl port-forward $POD_NAME 8080:8080
 ```
 
-Set `webScheduler.web.authenticate` to `True` and complete the section for SSL if you want this [SSL UI](#Exposing-oauth2-Google-ingress-with-cert-manager-and-nginx-ingress).
-Alternatively to view the Dashboard UI with no authentication or SSL view:
+Set  if you want an [SSL UI].
 
-## SSL Admin UI Webpage
-
-To expose the web server behind a https url with google oauth, please see the section for google-oauth, cert-manager and nginx-ingress install instructions [SSL UI](#Exposing-oauth2-Google-ingress-with-cert-manager-and-nginx-ingress).
+To expose the web server behind a https url with google oauth, set `webScheduler.web.authenticate` to `True` and see the section for google-oauth, cert-manager and nginx-ingress install instructions [SSL UI](#Exposing-oauth2-Google-ingress-with-cert-manager-and-nginx-ingress).
 
 ## Tidying up
 
-The easiest way to tidy-up is to delete the project and make a new one if re-deploying, however there are steps in tidying-up.sh to delete the individual resources.
+The easiest way to tidy-up is to delete the project and make a new one if re-deploying, however there are steps in `tidying-up.sh` to delete the individual resources.
 
 ## Helm chart layout
 
