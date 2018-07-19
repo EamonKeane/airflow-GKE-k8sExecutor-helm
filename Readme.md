@@ -1,7 +1,7 @@
 
 # Cost-effective, scalable and stateless airflow
 
-Deploy a highly-available, auto-scaling, stateless airflow cluster with the kubernetes executor and CloudSQL. This also includes an SSL airflow admin page, google Oauth2 login, and Cloud Filestore for storing dags and logs in under 20 minutes. The monthly fixed cost is approximately $180 at the cheapest to $500/month for a HA (default installation shown here, $240/month Cloud Filestore minimum), plus $0.015 per vCPU hour <https://cloud.google.com/products/calculator/#id=22a2fecd-fc97-412f-8560-1ce1f70bb44f>:
+Deploy a highly-available, auto-scaling, stateless airflow cluster with the kubernetes executor and CloudSQL. This also includes an SSL airflow admin page, google Oauth2 login, and Cloud Filestore for storing dags and logs and can be completed in under 20 minutes. The monthly fixed cost is approximately $180 at the cheapest to $500/month for a HA version (default installation shown here, $240/month Cloud Filestore minimum), plus $0.015 per vCPU hour <https://cloud.google.com/products/calculator/#id=22a2fecd-fc97-412f-8560-1ce1f70bb44f>:
 
   Cheapest:
 
@@ -38,7 +38,7 @@ The following script by default installs:
 * A HA postgres CloudSql instance along with cloudsql service account, airflow database and password
 * A 3-zone regional kubernetes cluster
 * An auto-scaling worker pool for dag tasks (starts at zero, take 2 minutes to spin up when first dag is triggered)
-* A kubernetes secret containing the cluster's kubeconfig, airflow db username, airflow db passowrd, sql_alchemy_conn, fernet key, gcs-log-folder name, cloudsql service account
+* A kubernetes secret containing the sql_alchemy_conn, fernet key, gcs-log-folder name, cloudsql service account and the cluster's kubeconfig (for the Kube Pod Operator with local executor)
 * A Cloud Filestore instance
 
 ```bash

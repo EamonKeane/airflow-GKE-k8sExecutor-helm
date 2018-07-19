@@ -7,7 +7,7 @@ GCE_ZONE=$(gcloud config get-value compute/zone)
 DATABASE_INSTANCE_NAME=airflow
 
 ACCOUNT=$(gcloud config get-value core/account)
-PROJECT=icabbi-test-210421
+PROJECT=
 REGION=$(gcloud config get-value compute/region)
 GCE_ZONE=$(gcloud config get-value compute/zone)
 
