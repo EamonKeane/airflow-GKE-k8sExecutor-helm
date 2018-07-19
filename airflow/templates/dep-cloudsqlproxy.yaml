@@ -15,12 +15,14 @@ metadata:
 spec:
   selector:
     matchLabels:
+      app.kubernetes.io/name: {{ template "airflow.name" . }}
       app: {{ template "airflow.name" . }}
       tier: "{{ template "airflow.postgresql.fullname" . }}"
   replicas: 1
   template:
     metadata:
       labels:
+        app.kubernetes.io/name: {{ template "airflow.name" . }}
         app: {{ template "airflow.name" . }}
         tier: "{{ template "airflow.postgresql.fullname" . }}"
     spec:

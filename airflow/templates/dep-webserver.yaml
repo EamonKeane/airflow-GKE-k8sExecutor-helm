@@ -12,6 +12,7 @@ metadata:
 spec:
   selector:
     matchLabels:
+      app.kubernetes.io/name: {{ template "airflow.name" . }}
       app: {{ template "airflow.name" . }}
       tier: {{ .Values.webScheduler.web.name }}
   replicas: {{ .Values.webScheduler.web.webReplicaCount }}
@@ -20,6 +21,7 @@ spec:
       annotations:
         checksum/config: {{ include (print $.Template.BasePath "/cfgmap-airflow-cfg.yaml") . | sha256sum }}
       labels:
+        app.kubernetes.io/name: {{ template "airflow.name" . }}
         app: {{ template "airflow.name" . }}
         tier: {{ .Values.webScheduler.web.name }}
     spec:

@@ -1,7 +1,7 @@
 
 # Cost-effective, scalable and stateless airflow
 
-Deploy a highly-available, auto-scaling, stateless airflow cluster with the kubernetes executor and CloudSQL. This also includes an SSL airflow admin page, google Oauth2 login, and Cloud Filestore for storing dags and logs and can be completed in under 20 minutes. The monthly fixed cost is approximately $180 at the cheapest to $500/month for a HA version (default installation shown here, $240/month Cloud Filestore minimum), plus $0.015 per vCPU hour <https://cloud.google.com/products/calculator/#id=22a2fecd-fc97-412f-8560-1ce1f70bb44f>:
+Deploy a highly-available, auto-scaling, stateless airflow cluster with the kubernetes executor and CloudSQL. This also includes an SSL airflow admin page, google Oauth2 login, Cloud Filestore for storing dags and logs and can be completed in under 20 minutes. The monthly fixed cost is approximately $180 at the cheapest to $500/month for a HA version (default installation shown here, $240/month Cloud Filestore minimum), plus $0.015 per vCPU hour <https://cloud.google.com/products/calculator/#id=22a2fecd-fc97-412f-8560-1ce1f70bb44f>:
 
   Cheapest:
 
@@ -15,7 +15,7 @@ Deploy a highly-available, auto-scaling, stateless airflow cluster with the kube
 * Auto-scaling, pre-emptible `n1-highcpu-4` cost of $30/month, or $40/month assuming 75% utilisation.
 * $40/(730 hours per month * 4 vCPU) = $0.015/vCPU hour
 
-This calculation assumes you have idempotent dags, for non-idempotent dags the cost is circa $0.05/vCPU hour. This compares with approximately $300 + $0.20/(vCPU + DB)hour with Cloud Composer <https://cloud.google.com/composer/pricing>. This tutorial installs on the free Google account ($300 over 12 months).
+This calculation assumes you have idempotent dags, for non-idempotent dags the cost is circa $0.05/vCPU hour. This compares with approximately $300 + $0.20/(vCPU + DB)hour with Cloud Composer <https://cloud.google.com/composer/pricing>. This tutorial installs on the free Google account ($300 over 12 months). Elasticsearch and Grafana/Prometheus can additionally be installed in a further 10 minutes to view airflow logs and metrics, see [Monitoring and Logging](#Monitoring-and-Logging) (this is an additional circa $100/month for the compute resources).
 
 ## Installation instructions
 
@@ -367,3 +367,66 @@ dagVolume:
 ```
 
 Setup jenkins per the instructions [below](#Setup-Jenkins-to-sync-dags), or alternatively, copy the example pod operator in this repo to the $STORAGE_NAME of the NFS server (you can get connection instructions at this url <https://console.cloud.google.com/dm/deployments/details/$NFS_DEPLOYMENT_NAME?project=$PROJECT>)
+
+## Monitoring and Logging
+
+For effortless (and free) monitoring and logging, use the Google Click to Deploy to GKE apps. This will trigger the autoscaling worker pool to scale up to meet the demands. The only cost is the additional persistent disks and the nodes (approximately two `n1-highcpu-4` nodes).
+
+### Elasticsearch
+
+* Follow the (very simple) instructions at:
+
+<https://marketplace.gcr.io/google/elastic-gke-logging>
+
+To view airflow logs substitute what you entered on the previous page:
+
+```bash
+ELASTICSEARCH_DEPLOYMENT_NAME=elastic-gke-logging-1-staging-kibana-svc
+ELASTICSEARCH_DEPLOYMENT_NAMESPACE=cluster-monitoring
+```
+
+* Open a webpage:
+
+```bash
+kubectl port-forward $ELASTICSEARCH_DEPLOYMENT_NAME svc/ -n $ELASTICSEARCH_DEPLOYMENT_NAMESPACE 5601
+open http://localhost:5601/
+```
+
+* Select `OPEN` at the top of the page
+* Select `GKE Apps Logs`
+* You will then see something similar to the below (this is because of the annotation `app_kubernetes_io/name: airflow` added to each of the deployment objects)
+
+![airflow-elasticsearch](images/airflow-elasticsearch.png "Airflow Elasticsearch Logs")
+
+### Prometheus and Grafana
+
+* Follow the (very simple) instructions at:
+
+https://marketplace.gcr.io/google/prometheus
+
+To view the grafana dashboard:
+
+```bash
+GRAF_PROM_APP_INSTANCE_NAME=prometheus-1
+GRAF_PROM_DEPLOYMENT_NAMESPACE=default
+```
+
+* Open a webpage:
+
+```bash
+kubectl port-forward --namespace $GRAF_PROM_DEPLOYMENT_NAMESPACE $GRAF_PROM_APP_INSTANCE_NAME 3000
+open http://localhost:5601/
+```
+
+* Enter the following username and password:
+
+```bash
+USERNAME=admin
+PASSWORD=
+
+kubectl get secret $GRAF_PROM_APP_INSTANCE_NAME-grafana -o jsonpath='{.data.admin-password}' | base64 --decode | pbcopy
+```
+
+* Click `Home` and explore some of the sample dashboards e.g. `K8s/ Compute Resources/ Cluster`
+
+![airflow-prometheus](images/airflow-prometheus.png "Airflow Prometheus")
