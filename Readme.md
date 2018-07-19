@@ -378,18 +378,19 @@ For effortless (and free) monitoring and logging, use the Google Click to Deploy
 
 <https://marketplace.gcr.io/google/elastic-gke-logging>
 
-To view airflow logs substitute what you entered on the previous page:
+To view airflow logs substitute the `namespace` and `app instance name` what you entered on the previous page:
 
 ```bash
-ELASTICSEARCH_DEPLOYMENT_NAME=elastic-gke-logging-1-staging-kibana-svc
+ELASTICSEARCH_APP_INSTANCE_NAME=elastic-gke-logging-1-kibana-svc
 ELASTICSEARCH_DEPLOYMENT_NAMESPACE=cluster-monitoring
+KIBANA_PORT=5601
 ```
 
 * Open a webpage:
 
 ```bash
-kubectl port-forward $ELASTICSEARCH_DEPLOYMENT_NAME svc/ -n $ELASTICSEARCH_DEPLOYMENT_NAMESPACE 5601
-open http://localhost:5601/
+kubectl port-forward $ELASTICSEARCH_APP_INSTANCE_NAME svc/ -n $ELASTICSEARCH_DEPLOYMENT_NAMESPACE $KIBANA_PORT
+open http://localhost:$KIBANA_PORT/
 ```
 
 * Select `OPEN` at the top of the page
@@ -408,14 +409,15 @@ To view the grafana dashboard:
 
 ```bash
 GRAF_PROM_APP_INSTANCE_NAME=prometheus-1
-GRAF_PROM_DEPLOYMENT_NAMESPACE=default
+GRAF_PROM_DEPLOYMENT_NAMESPACE=cluster-monitoring
+GRAFANA_PORT=3000
 ```
 
 * Open a webpage:
 
 ```bash
-kubectl port-forward --namespace $GRAF_PROM_DEPLOYMENT_NAMESPACE $GRAF_PROM_APP_INSTANCE_NAME 3000
-open http://localhost:5601/
+kubectl port-forward --namespace $GRAF_PROM_DEPLOYMENT_NAMESPACE $GRAF_PROM_APP_INSTANCE_NAME $GRAFANA_PORT
+open http://localhost:$GRAFANA_PORT/
 ```
 
 * Enter the following username and password:
@@ -424,7 +426,9 @@ open http://localhost:5601/
 USERNAME=admin
 PASSWORD=
 
-kubectl get secret $GRAF_PROM_APP_INSTANCE_NAME-grafana -o jsonpath='{.data.admin-password}' | base64 --decode | pbcopy
+kubectl get secret $GRAF_PROM_APP_INSTANCE_NAME-grafana \
+                  -o jsonpath='{.data.admin-password}' \
+                     | base64 --decode | pbcopy
 ```
 
 * Click `Home` and explore some of the sample dashboards e.g. `K8s/ Compute Resources/ Cluster`
