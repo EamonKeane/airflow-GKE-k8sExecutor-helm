@@ -394,7 +394,7 @@ open http://localhost:5601/
 
 * Select `OPEN` at the top of the page
 * Select `GKE Apps Logs`
-* You will then see something similar to the below (this is because of the annotation `app_kubernetes_io/name: airflow` added to each of the deployment objects)
+* You will then see something similar to the below (this is because of the annotation `app.kubernetes.io/name: airflow` added to each of the deployment objects (<https://kubernetes.io/docs/concepts/overview/working-with-objects/common-labels/>).
 
 ![airflow-elasticsearch](images/airflow-elasticsearch.png "Airflow Elasticsearch Logs")
 
