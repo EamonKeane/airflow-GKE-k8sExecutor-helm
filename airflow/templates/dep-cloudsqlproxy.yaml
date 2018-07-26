@@ -40,6 +40,10 @@ spec:
             - name: airflow-sql-credentials
               mountPath: /secrets/cloudsql
               readOnly: true
+    {{- with .Values.webScheduler.nodeSelector }}
+      nodeSelector:
+{{ toYaml . | indent 8 }}
+    {{- end }}
       volumes:
         - name: airflow-sql-credentials
           secret:

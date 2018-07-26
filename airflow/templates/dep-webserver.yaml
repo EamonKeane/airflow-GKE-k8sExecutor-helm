@@ -90,6 +90,10 @@ spec:
           args: ["webserver"]
           resources:
 {{ toYaml .Values.webScheduler.web.resources | indent 12 }}
+    {{- with .Values.webScheduler.nodeSelector }}
+      nodeSelector:
+{{ toYaml . | indent 8 }}
+    {{- end }}
       volumes:
         - name: {{ .Values.webScheduler.airflowCfgConfigMap }}
           configMap:

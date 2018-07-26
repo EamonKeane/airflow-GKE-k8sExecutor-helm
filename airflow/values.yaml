@@ -110,7 +110,8 @@ webScheduler:
   # Ensure the label is applied to the leader nodes (kubectl label airflow-leader)
   # $NODE_NAME=gke-airflow-default-pool-e573c3f7-nhx4
   # e.g.kubectl label node $NODE_NAME app=airflow-leader
-  masterNodeSelector: app=airflow-leader
+  nodeSelector:
+    # app: airflow-leader
   web:
     name: web
     resources:
