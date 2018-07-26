@@ -435,3 +435,12 @@ kubectl get secret $GRAF_PROM_APP_INSTANCE_NAME-grafana \
 * Click `Home` and explore some of the sample dashboards e.g. `K8s/ Compute Resources/ Cluster`
 
 ![airflow-prometheus](images/airflow-prometheus.png "Airflow Prometheus")
+
+## Notes
+
+To delete kubernetes pod operators which have completed run:
+
+```bash
+NAMESPACE=default
+kubectl delete pods --namespace $NAMESPACE --field-selector=status.phase=Succeeded
+```
