@@ -74,8 +74,10 @@ airflowCfg:
     remoteLogging: False
     remoteLogConnId: google_cloud_default
     executor: KubernetesExecutor
+    parallelism: 32
   scheduler:
     schedulerHeartbeatSec: 5
+    maxThreads: 2
   kubernetes:
     workerServiceAccountName: airflow-rbac
     deleteWorkerPods: True
