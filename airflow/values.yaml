@@ -75,6 +75,7 @@ airflowCfg:
     remoteLogConnId: google_cloud_default
     executor: KubernetesExecutor
     parallelism: 32
+    dagConcurrency: 16
   scheduler:
     schedulerHeartbeatSec: 5
     maxThreads: 2
@@ -112,6 +113,13 @@ webScheduler:
   masterNodeSelector: app=airflow-leader
   web:
     name: web
+    resources:
+      limits:
+        cpu: 1000m
+        memory: 1Gi
+      requests:
+        cpu: 1000m
+        memory: 1Gi
     # If setting authenticate to true, create a secret of the form:
     # kubectl create secret generic google-oauth \
     #     --from-literal=client_id=$CLIENT_ID \
@@ -131,6 +139,13 @@ webScheduler:
       port: 8080
   scheduler:
     name: scheduler
+    resources:
+      limits:
+        cpu: 1000m
+        memory: 1Gi
+      requests:
+        cpu: 1000m
+        memory: 1Gi
     dagVolumeReadOnly: False
     serviceAccountName: airflow-rbac
     kubeconfigMountPath: /root/airflow/kubeconfig

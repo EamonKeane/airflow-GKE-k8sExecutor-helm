@@ -63,6 +63,8 @@ spec:
                  key: "{{ .Values.secrets.key.gcsLogFolder }}"
 {{ end }}    
           args: ["scheduler"]
+          resources:
+{{ toYaml .Values.webScheduler.scheduler.resources | indent 12 }}
       volumes:
         - name: {{ .Values.webScheduler.airflowCfgConfigMap }}
           configMap:

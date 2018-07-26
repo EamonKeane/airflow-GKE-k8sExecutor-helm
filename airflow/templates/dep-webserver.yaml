@@ -88,6 +88,8 @@ spec:
           #   initialDelaySeconds: 20
           #   timeoutSeconds: 30
           args: ["webserver"]
+          resources:
+{{ toYaml .Values.webScheduler.web.resources | indent 12 }}
       volumes:
         - name: {{ .Values.webScheduler.airflowCfgConfigMap }}
           configMap:
