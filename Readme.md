@@ -438,6 +438,8 @@ kubectl get secret $GRAF_PROM_APP_INSTANCE_NAME-grafana \
 
 ## Notes
 
+### Deleting pod operators
+
 To delete kubernetes pod operators which have completed run:
 
 ```bash
@@ -450,6 +452,8 @@ A dag to delete successfully completed pod operators is available in:
 ```bash
 ./dags/delete_successful_pod_operators.py
 ```
+
+### Resetting scheduler
 
 To reset the scheduler database run the following commands:
 
@@ -464,3 +468,12 @@ Then delete the scheduler pod to restart:
 ```bash
 kubectl delete pod --namespace $NAMESPACE $POD_NAME
 ```
+
+### Scaling
+
+The kubernetes executor requires one connection per concurrent task. The limits for CloudSQL are quite low and cannot be changed except by increasing memory. In practical terms this means that for the smallest instance you can only get 90 connections (100 connections minus 6 reserved for CloudSQL internal operations minus the webserver and scheduler). Ensure that `airflowCfg.core.dagConcurrency` is set below this limit, or else you will notice pods failing.
+
+<https://stackoverflow.com/questions/51084907/how-to-increase-the-connection-limit-for-the-google-cloud-sql-postgres-database>
+
+![airflow-cloudsql-connections](images/cloudsql-active-connections.png "Airflow Cloudsql Active Connections")
+
