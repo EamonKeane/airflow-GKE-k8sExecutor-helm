@@ -444,3 +444,9 @@ To delete kubernetes pod operators which have completed run:
 NAMESPACE=default
 kubectl delete pods --namespace $NAMESPACE --field-selector=status.phase=Succeeded
 ```
+
+A dag to delete successfully completed pod operators is available in:
+
+```bash
+./dags/delete_successful_pod_operators.py
+```
