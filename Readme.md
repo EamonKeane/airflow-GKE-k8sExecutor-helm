@@ -450,3 +450,17 @@ A dag to delete successfully completed pod operators is available in:
 ```bash
 ./dags/delete_successful_pod_operators.py
 ```
+
+To reset the scheduler database run the following commands:
+
+```bash
+NAMESPACE=default
+export POD_NAME=$(kubectl get pods --namespace $NAMESPACE -l "app=airflow,tier=scheduler" -o jsonpath="{.items[0].metadata.name}")
+kubectl exec -it --namespace $NAMESPACE $POD_NAME -- airflow resetdb
+```
+
+Then delete the scheduler pod to restart:
+
+```bash
+kubectl delete pod --namespace $NAMESPACE $POD_NAME
+```
