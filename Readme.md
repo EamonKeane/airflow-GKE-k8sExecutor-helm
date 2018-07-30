@@ -33,7 +33,8 @@ git clone https://github.com/EamonKeane/airflow-GKE-k8sExecutor-helm.git
 cd airflow-GKE-k8sExecutor-helm
 ```
 
-The following script by default installs:
+The following script is for GKE and by default installs:
+(for installing on azure see [AKS](#AKS))
 
 * A HA postgres CloudSql instance along with cloudsql service account, airflow database and password
 * A 3-zone regional kubernetes cluster
@@ -159,6 +160,7 @@ To expose the web server behind a https url with google oauth, set `webScheduler
 ## Tidying up
 
 The easiest way to tidy-up is to delete the project and make a new one if re-deploying, however there are steps in `tidying-up.sh` to delete the individual resources.
+For azure you can simply `az group delete --resource-group $RESOURCE_GROUP` to delete everything.
 
 ## Helm chart layout
 
@@ -176,6 +178,12 @@ When debugging it is useful to set the executor to LocalExecutor. This can be do
 
 ```bash
 --set airflowCfg.core.executor=LocalExecutor
+```
+
+If the installation is giving you trouble, running a pod inside the cluster can be helpful. This can be done e.g. by:
+
+```bash
+kubectl run airflow-test --rm -it --image quay.io/eamonkeane/airflow-k8s:0.5-oracle --command /bin/bash
 ```
 
 This way you can see all the logs on one pod and can still test kubernetes using the Pod Operator (this requires a kubeconfig to be mounted on the scheduler pod, which is part of the setup).
@@ -202,7 +210,19 @@ helm install stable/cert-manager \
 Add the default cluster issuer (this will install an let's encrypt cert using the below letsencrypt-prod certificate issuer for all). Replace the email field with your email.
 
 ```bash
-kubectl apply -f kubernetes-yaml/cluster-issuer.yaml
+cat <<EOF | kubectl create -f -
+apiVersion: certmanager.k8s.io/v1alpha1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-prod
+spec:
+  acme:
+    server: https://acme-v02.api.letsencrypt.org/directory
+    email: mydomain@logistio.ie
+    privateKeySecretRef:
+      name: letsencrypt-prod
+    http01: {}
+EOF
 ```
 
 Install nginx-ingress with the option to preserve sticky sessions (externalTrafficPolicy). This will take around a minute to install.
@@ -477,3 +497,38 @@ The kubernetes executor requires one connection per concurrent task. The limits 
 
 ![airflow-cloudsql-connections](images/cloudsql-active-connections.png "Airflow Cloudsql Active Connections")
 
+## AKS
+
+The following script installs:
+
+* A resource group
+* A VNET for the cluster
+* A two-node cluster `Standard_DS2_v2` (2 vCPU, 7GiB). Advanced networking is enabled VNET between managed postgres
+* A storage account for dags and logs
+* An Azure managed postgresql 10 database along with airflow username/pwd and airflow database. SSL is enforced and this connection is managed with the Balitmore root cert in the container and located at /usr/local/airflow/.postgresql/root.crt
+* Enables Microsoft.SQL service endpoint on the VNET so postgres can connect
+* Create a VNET rule so that postgres accepts connections from the cluster
+* A kubernetes secret containing: fernet-key, sql-alchemy-conn and kubeconfig
+
+```bash
+RESOURCE_GROUP=$(openssl rand -base64 10 | tr -dc 'a-z0-9-._()')
+LOCATION=westeurope
+STORAGE_ACCOUNT_NAME=$(openssl rand -base64 24 | tr -dc 'a-z0-9')
+POSTGRES_DATABASE_INSTANCE_NAME=$(openssl rand -base64 8 | tr -dc 'a-z0-9')
+./aks-sql-k8s-install.sh \
+  --resource-group=$RESOURCE_GROUP \
+  --location=$LOCATION \
+  --storage-account-name=$STORAGE_ACCOUNT_NAME \
+  --postgres-database-instance-name=$POSTGRES_DATABASE_INSTANCE_NAME
+```
+
+```bash
+helm upgrade \
+    --install \
+    --set google.enabled=False \
+    --set azure.enabled=True \
+    --set azure.location=$LOCATION \
+    --set azure.storageAccountName=$STORAGE_ACCOUNT_NAME \
+    airflow \
+    airflow
+```

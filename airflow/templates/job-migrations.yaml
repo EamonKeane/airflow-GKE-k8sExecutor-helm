@@ -22,16 +22,19 @@ spec:
         - name: "{{ .Values.webScheduler.airflowCfgConfigMap }}"
           configMap:
             name: "{{ .Values.webScheduler.airflowCfgConfigMap }}-{{ .Release.Time.Seconds }}"
+      {{if and .Values.google.enabled .Values.webScheduler.preHook.initContainer -}}
       initContainers:
       - name: check-db-ready
         image: postgres:9.6.5
         command: ['sh', '-c', 
           'until pg_isready -h "{{ template "airflow.postgresql.fullname" . }}" -p 5432; 
           do echo waiting for database; sleep 2; done;']
+      {{ end -}}
       containers:
        - name: "pre-hook-migration"
          image: {{ .Values.webScheduler.image }}:{{ .Values.webScheduler.tag }}
          imagePullPolicy: {{ .Values.webScheduler.imagePullPolicy }}
+         args: [{{ .Values.webScheduler.preHook.args }}]
          volumeMounts:
           - name: "{{ .Values.webScheduler.airflowCfgConfigMap }}"
             mountPath: {{ .Values.webScheduler.airflowCfgPath }}
@@ -47,10 +50,11 @@ spec:
                secretKeyRef:
                   name: {{ .Values.secrets.name }}
                   key: {{ .Values.secrets.key.fernetKey }}
+{{- if .Values.airflowCfg.core.remoteLogging }}
            - name: AIRFLOW__CORE__REMOTE_BASE_LOG_FOLDER
              valueFrom:
                secretKeyRef:
                   name: {{ .Values.secrets.name }}
                   key: {{ .Values.secrets.key.gcsLogFolder }}
-         args: [{{ .Values.webScheduler.preHook.args }}]
+{{ end }}
 {{- end -}}

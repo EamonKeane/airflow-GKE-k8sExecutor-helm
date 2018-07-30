@@ -26,7 +26,7 @@ spec:
         tier: {{ .Values.webScheduler.scheduler.name }}
     spec:
       restartPolicy: Always
-      serviceAccountName: {{ .Values.webScheduler.serviceAccountName }}
+      serviceAccountName: {{ .Values.webScheduler.scheduler.serviceAccountName }}
       containers:
         - name: {{ template "airflow.webserver.fullname" . }}
           image: {{ .Values.webScheduler.image }}:{{ .Values.webScheduler.tag }}

@@ -1,0 +1,16 @@
+{{- if and .Values.azure.enabled .Values.azure.createDagPVC -}}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  annotations:
+    "helm.sh/hook": pre-install
+    "helm.sh/hook-weight": "-35"
+  name: {{ .Values.webScheduler.dagsVolumeClaim }}
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: {{ .Values.azure.azureFileStorageClassName }}
+  resources:
+    requests:
+      storage: {{ .Values.dagVolume.size }}
+{{- end -}}

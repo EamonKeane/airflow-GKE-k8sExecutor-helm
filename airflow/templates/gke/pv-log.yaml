@@ -1,4 +1,4 @@
-{{- if .Values.logVolume.installPV -}}
+{{- if and .Values.google.enabled .Values.logVolume.installPV -}}
 apiVersion: v1
 kind: PersistentVolume
 metadata:

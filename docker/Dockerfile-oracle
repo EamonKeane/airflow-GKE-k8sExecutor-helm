@@ -113,10 +113,19 @@ RUN pip install cx_Oracle && \
     pip install flask-bcrypt && \
     pip install password
 
-COPY /entrypoint.sh /entrypoint.sh
+COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
 RUN chown -R airflow: ${AIRFLOW_HOME}
+
+# This is to connect via SSL on Azure Postgres
+# https://docs.microsoft.com/en-us/azure/postgresql/concepts-ssl-connection-security
+# https://www.postgresql.org/docs/9.6/static/libpq-ssl.html
+# Expires 2025 https://baltimore-cybertrust-root.chain-demos.digicert.com/info/index.html
+RUN mkdir ${AIRFLOW_HOME}/.postgresql
+RUN chown -R airflow: ${AIRFLOW_HOME}/.postgresql
+COPY azure/root.crt ${AIRFLOW_HOME}/.postgresql/root.crt
+RUN chown -R airflow: ${AIRFLOW_HOME}/.postgresql/root.crt
 
 EXPOSE 8080
 

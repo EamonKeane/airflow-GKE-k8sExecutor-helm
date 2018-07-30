@@ -3,10 +3,21 @@
 namespace: default
 
 google: 
+  enabled: true
   project: 
   region: 
   databaseInstance: airflow
   databaseName: airflow
+
+azure:
+  enabled: false
+  location: 
+  azureFileStorageClassName: azurefile-airflow
+  createAzureFileStorageClass: true
+  createLogPVC: true
+  createDagPVC: true
+  storageAccountName: squarerouteairflow
+
 
 createWorkerRBAC: true
 installPostgresService: true
@@ -79,6 +90,7 @@ airflowCfg:
   scheduler:
     schedulerHeartbeatSec: 5
     maxThreads: 2
+    serviceAccountName: airflow-rbac
   kubernetes:
     workerServiceAccountName: airflow-rbac
     deleteWorkerPods: True
@@ -153,11 +165,12 @@ webScheduler:
   preHook:
     # This performs the migrations and runs before any new deployment or upgrade
     install: true
+    initContainer: true
     args: "airflow initdb && alembic upgrade heads"
   installWebServer: true
   installScheduler: true
   image: quay.io/eamonkeane/airflow-k8s
-  tag: "0.2"
+  tag: "0.5"
   imagePullPolicy: IfNotPresent
   dagsVolumeClaim: airflow-dags
   logsVolumeClaim: airflow-logs

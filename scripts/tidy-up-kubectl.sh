@@ -12,9 +12,11 @@ kubectl delete service/airflow
 kubectl delete job --all
 kubectl delete cm --all
 kubectl delete pvc --all
-kubectl delete pv --all
-
-
+kubectl delete pv airflow-logs
+kubectl delete pv airflow-dags
+kubectl delete sc azurefile-airflow
+kubectl delete clusterroles system:azure-cloud-provider
+kubectl delete clusterrolebinding system:azure-cloud-provider
 #####
 
 ## To delete stuck pod:
@@ -24,4 +26,3 @@ kubectl edit po $NAME
 # https://github.com/kubernetes/kubernetes/issues/65936
 #   finalizers:
 #  - foregroundDeletion
-
