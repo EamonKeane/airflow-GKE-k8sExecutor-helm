@@ -100,14 +100,15 @@ airflowCfg:
     # This is named {{ .Values.webScheduler.airflowCfgConfigMap }}
     airflowConfigmap: airflow-configmap
     workerContainerRepository: quay.io/eamonkeane/airflow-k8s
-    workerContainerTag: "0.2"
+    workerContainerTag: "0.5"
     namespace: default
     # Add a list of secrets in the form of ENV_VARIABLE=KUBERNETES_SECRET_NAME=KUBERNETES_SECRET_KEY
     # This is injected into the environment of the Kubernetes Executor workers
   kubernetesSecrets: |-
     SQL_ALCHEMY_CONN=airflow=sql_alchemy_conn
     AIRFLOW__CORE__FERNET_KEY=airflow=fernet-key
-    AIRFLOW__CORE__REMOTE_BASE_LOG_FOLDER=airflow=gcs-log-folder
+    # If using remote logging, enable this key to inject the log folder into the worker environment
+    # AIRFLOW__CORE__REMOTE_BASE_LOG_FOLDER=airflow=gcs-log-folder
     # Add a list of key value pairs for node labels you want the Kubernetes Exeuctor workers
     # To be scheduled on. You can do this by using the kubectl label nodes
     # https://kubernetes.io/docs/concepts/configuration/assign-pod-node/

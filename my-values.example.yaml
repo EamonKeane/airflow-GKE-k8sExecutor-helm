@@ -38,6 +38,8 @@ airflowCfg:
     executor: KubernetesExecutor
   kubernetes:
     namespace: airflow
+    workerContainerRepository: quay.io/eamonkeane/airflow-k8s
+    workerContainerTag: "0.5"
   kubernetesNodeSelectors: |-
 ingress:
   enabled: true

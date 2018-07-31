@@ -510,16 +510,22 @@ The following script installs:
 * Create a VNET rule so that postgres accepts connections from the cluster
 * A kubernetes secret containing: fernet-key, sql-alchemy-conn and kubeconfig
 
+The script takes roughly 30 minutes to complete as it waits for resources to be provisioned.
+
 ```bash
 RESOURCE_GROUP=$(openssl rand -base64 10 | tr -dc 'a-z0-9-._()')
 LOCATION=westeurope
 STORAGE_ACCOUNT_NAME=$(openssl rand -base64 24 | tr -dc 'a-z0-9')
 POSTGRES_DATABASE_INSTANCE_NAME=$(openssl rand -base64 8 | tr -dc 'a-z0-9')
+NODE_VM_SIZE=Standard_DS2_v2
+NODE_COUNT=3
 ./aks-sql-k8s-install.sh \
   --resource-group=$RESOURCE_GROUP \
   --location=$LOCATION \
   --storage-account-name=$STORAGE_ACCOUNT_NAME \
-  --postgres-database-instance-name=$POSTGRES_DATABASE_INSTANCE_NAME
+  --postgres-database-instance-name=$POSTGRES_DATABASE_INSTANCE_NAME \
+  --node-vm-size=$NODE_VM_SIZE \
+  --node-count=$NODE_COUNT
 ```
 
 ```bash

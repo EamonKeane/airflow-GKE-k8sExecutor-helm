@@ -76,7 +76,7 @@ GOOGLE_LOG_STORAGE_BUCKET=$PROJECT-airflow
 #### DATABASE OPTIONS ####
 CREATE_CLOUDSQL_DATABASE=FALSE
 ACTIVATION_POLICY=always
-if [ HIGHLY_AVAILABLE = "TRUE" ] 
+if [ $HIGHLY_AVAILABLE = "TRUE" ] 
 then
   AVAILABILITY_TYPE=regional
 else
@@ -151,7 +151,7 @@ fi
 ### The default node pool will be used only for the web server and scheduler, 
 ### This is set to be pre-emptible to lower costs
 ### https://cloud.google.com/sdk/gcloud/reference/container/clusters/create
-if [ HIGHLY_AVAILABLE = "FALSE" ] 
+if [ $HIGHLY_AVAILABLE = "FALSE" ] 
 then
 gcloud container clusters create $CLUSTER_NAME \
     --cluster-version=$CLUSTER_VERSION \
