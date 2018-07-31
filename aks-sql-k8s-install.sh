@@ -11,6 +11,7 @@ STORAGE_ACCOUNT_NAME=
 POSTGRES_DATABASE_INSTANCE_NAME=
 NODE_VM_SIZE=
 NODE_COUNT=
+AIRFLOW_NAMESPACE=
 # Storage account name must be globally unique and must be between 3 and 24 characters in length and use numbers and lower-case letters only
 
 for i in "$@"
@@ -33,6 +34,9 @@ case ${i} in
     ;;
     -node-count=*|--node-count=*)
     NODE_COUNT="${i#*=}"
+    ;;
+    -airflow-namespace=*|--airflow-namespace=*)
+    AIRFLOW_NAMESPACE="${i#*=}"
     ;;
 esac
 done
@@ -68,6 +72,9 @@ DNS_SERVICE_IP=10.2.0.10
 SERVICE_CIDR=10.2.0.0/24
 
 KUBERNETES_KUBECONFIG_SECRET=kubeconfig
+TEMP_KUBECONFIG_DIR=$PWD
+KUBECONFIG_FILE_OUTPUT=$TEMP_KUBECONFIG_DIR/kubeconfig
+
 CLUSTER_RESOURCE_GROUP=MC_${RESOURCE_GROUP}_${CLUSTER_NAME}_${LOCATION}
 
 CREATE_RESOURCE_GROUP=TRUE
@@ -119,8 +126,6 @@ az aks get-credentials \
   --admin \
   --resource-group $RESOURCE_GROUP
 
-TEMP_KUBECONFIG_DIR=$PWD
-KUBECONFIG_FILE_OUTPUT=$TEMP_KUBECONFIG_DIR/kubeconfig
 az aks get-credentials \
   --name $CLUSTER_NAME \
   --admin \
@@ -204,7 +209,13 @@ POSTGRES_SERVICE=$(az postgres server show --name $POSTGRES_DATABASE_INSTANCE_NA
 
 SQL_ALCHEMY_CONN=postgresql+psycopg2://$AIRFLOW_ADMIN_NAME@$POSTGRES_DATABASE_INSTANCE_NAME:$POSTGRES_ADMIN_PASSWORD@$POSTGRES_SERVICE:$POSTGRES_PORT/$POSTGRES_AIRFLOW_DATABASE_NAME?sslmode=verify-full
 
+if [ $NAMESPACE != "default" ]
+then
+kubectl create namespace $NAMESPACE
+fi
+
 kubectl create secret generic airflow \
+    --namespace=$AIRFLOW_NAMESPACE \
     --from-literal=fernet-key=$FERNET_KEY \
     --from-literal=sql_alchemy_conn=$SQL_ALCHEMY_CONN \
     --from-file=kubeconfig=$KUBECONFIG_FILE_OUTPUT

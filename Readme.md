@@ -497,13 +497,15 @@ The kubernetes executor requires one connection per concurrent task. The limits 
 
 ![airflow-cloudsql-connections](images/cloudsql-active-connections.png "Airflow Cloudsql Active Connections")
 
+The default limit for pods per node is 30 when using the Azure Kubernetes Service advanced networking plugin (required for VNET for postgres). After the 10 system pods, this would limit you to 10 concurrent tasks per node (one for k8s executor, one for pod operator).
+
 ## AKS
 
 The following script installs:
 
 * A resource group
 * A VNET for the cluster
-* A two-node cluster `Standard_DS2_v2` (2 vCPU, 7GiB). Advanced networking is enabled VNET between managed postgres
+* A three-node cluster `Standard_DS2_v2` (2 vCPU, 7GiB). Advanced networking is enabled VNET between managed postgres
 * A storage account for dags and logs
 * An Azure managed postgresql 10 database along with airflow username/pwd and airflow database. SSL is enforced and this connection is managed with the Balitmore root cert in the container and located at /usr/local/airflow/.postgresql/root.crt
 * Enables Microsoft.SQL service endpoint on the VNET so postgres can connect
@@ -519,13 +521,15 @@ STORAGE_ACCOUNT_NAME=$(openssl rand -base64 24 | tr -dc 'a-z0-9')
 POSTGRES_DATABASE_INSTANCE_NAME=$(openssl rand -base64 8 | tr -dc 'a-z0-9')
 NODE_VM_SIZE=Standard_DS2_v2
 NODE_COUNT=3
+AIRFLOW_NAMESPACE=default
 ./aks-sql-k8s-install.sh \
   --resource-group=$RESOURCE_GROUP \
   --location=$LOCATION \
   --storage-account-name=$STORAGE_ACCOUNT_NAME \
   --postgres-database-instance-name=$POSTGRES_DATABASE_INSTANCE_NAME \
   --node-vm-size=$NODE_VM_SIZE \
-  --node-count=$NODE_COUNT
+  --node-count=$NODE_COUNT \
+  --airflow-namespace=$AIRFLOW_NAMESPACE
 ```
 
 ```bash
@@ -535,6 +539,7 @@ helm upgrade \
     --set azure.enabled=True \
     --set azure.location=$LOCATION \
     --set azure.storageAccountName=$STORAGE_ACCOUNT_NAME \
+    --set namespace=$AIRFLOW_NAMESPACE \
     airflow \
     airflow
 ```

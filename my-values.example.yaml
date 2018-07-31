@@ -1,5 +1,7 @@
+google: 
+  enabled: true
 webScheduler:
-  tag: "0.2-oracle"
+  tag: "0.5"
   imagePullPolicy: Always
   installWebServer: true
   installScheduler: true
@@ -13,6 +15,7 @@ webScheduler:
     googleAuthSecretClientSecretKey: client_secret
   preHook: 
     install: true
+    initContainer: true
   scheduler:
     dagVolumeReadOnly: false
     schedulerHeartbeatSec: 1
