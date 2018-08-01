@@ -1,22 +1,23 @@
 #!/usr/bin/env bash
 
 # if you have a failed deployment, use this block to delete everything in the airlfow namespace
+AIRFLOW_NAMESPACE=airflow
 helm del --purge airflow
-kubectl delete service/airflow-postgresql
-kubectl delete deployment.apps/airflow-postgresql --force --grace-period=0
-kubectl delete serviceaccount airflow-rbac
-kubectl delete clusterrolebinding airflow-clusterrolebinding
-kubectl delete deployment.apps/airflow-scheduler
-kubectl delete deployment.apps/airflow-web
-kubectl delete service/airflow
-kubectl delete job --all
-kubectl delete cm --all
-kubectl delete pvc --all
-kubectl delete pv airflow-logs
-kubectl delete pv airflow-dags
-kubectl delete sc azurefile-airflow
-kubectl delete clusterroles system:azure-cloud-provider
-kubectl delete clusterrolebinding system:azure-cloud-provider
+kubectl delete service/airflow-postgresql --namespace $AIRFLOW_NAMESPACE
+kubectl delete deployment.apps/airflow-postgresql --force --grace-period=0 --namespace $AIRFLOW_NAMESPACE
+kubectl delete serviceaccount airflow-rbac --namespace $AIRFLOW_NAMESPACE
+kubectl delete clusterrolebinding airflow-clusterrolebinding --namespace $AIRFLOW_NAMESPACE
+kubectl delete deployment.apps/airflow-scheduler --namespace $AIRFLOW_NAMESPACE
+kubectl delete deployment.apps/airflow-web --namespace $AIRFLOW_NAMESPACE
+kubectl delete service/airflow --namespace $AIRFLOW_NAMESPACE
+kubectl delete job --all --namespace $AIRFLOW_NAMESPACE
+kubectl delete cm --all --namespace $AIRFLOW_NAMESPACE
+kubectl delete pvc --all --namespace $AIRFLOW_NAMESPACE
+kubectl delete pv airflow-logs --namespace $AIRFLOW_NAMESPACE
+kubectl delete pv airflow-dags --namespace $AIRFLOW_NAMESPACE
+kubectl delete sc azurefile-airflow --namespace $AIRFLOW_NAMESPACE
+kubectl delete clusterroles system:azure-cloud-provider --namespace $AIRFLOW_NAMESPACE
+kubectl delete clusterrolebinding system:azure-cloud-provider --namespace $AIRFLOW_NAMESPACE
 #####
 
 ## To delete stuck pod:

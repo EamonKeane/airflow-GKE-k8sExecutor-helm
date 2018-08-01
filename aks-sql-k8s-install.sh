@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 # This script requires:
 # azure-cli (2.0.42)
 # Openssl (LibreSSL 2.2.7)
@@ -42,7 +43,6 @@ esac
 done
 
 # Airflow Database Details
-CREATE_DATABASE_INSTANCE=TRUE
 POSTGRES_AIRFLOW_DATABASE_NAME=airflow
 AIRFLOW_ADMIN_NAME=airflow
 POSTGRES_ADMIN_PASSWORD=$(openssl rand -base64 15)
@@ -59,13 +59,12 @@ SUBNET_ADDRESS_PREFIX=172.19.0.0/16
 
 ## CLUSTER DETAILS
 # https://docs.microsoft.com/en-us/cli/azure/aks?view=azure-cli-latest#az-aks-create
-CREATE_CLUSTER=TRUE
 CLUSTER_NAME=$RESOURCE_GROUP
 NODE_OSDISK_SIZE=100
 KUBERNETES_VERSION=1.10.5
 TAGS="client=squareroute environment=develop"
 AIRFLOW_WORKER_NODE_LABEL_SELECTORS="airflow=airflow_workers pool=preemptible"
-MAX_PODS=75
+MAX_PODS=30
 NETWORK_PLUGIN=azure
 DOCKER_BRIDGE_ADDRESS=172.17.0.1/16
 DNS_SERVICE_IP=10.2.0.10
@@ -77,9 +76,16 @@ KUBECONFIG_FILE_OUTPUT=$TEMP_KUBECONFIG_DIR/kubeconfig
 
 CLUSTER_RESOURCE_GROUP=MC_${RESOURCE_GROUP}_${CLUSTER_NAME}_${LOCATION}
 
-CREATE_RESOURCE_GROUP=TRUE
+
+CREATE_CLUSTER=FALSE
+CREATE_STORAGE_ACCOUNT=FALSE
+CREATE_VNET=FALSE
+CREATE_RESOURCE_GROUP=FALSE
+CREATE_DATABASE_INSTANCE=TRUE
+CREATE_AIRFLOW_DATABASE=TRUE
+
 # Create the resource group
-if [ $CREATE_RESOURCE_GROUP = "TRUE" ]
+if [ "$CREATE_RESOURCE_GROUP" = "TRUE" ]
 then
 az group create \
    --name $RESOURCE_GROUP \
@@ -88,6 +94,9 @@ fi
 
 echo "Creating vnet for the kubernetes cluster"
 # Create the vnet and subnet
+
+if [ "$CREATE_VNET" = "TRUE" ]
+then
 az network vnet create \
   --name $VNET_NAME \
   --resource-group $RESOURCE_GROUP \
@@ -95,6 +104,7 @@ az network vnet create \
   --location $LOCATION \
   --subnet-name $SUBNET_NAME \
   --subnet-prefix $SUBNET_ADDRESS_PREFIX
+fi
 
 # Get the subnet ID from the produced vnet's subnet
 SUBNET_ID=$(az network vnet subnet list --resource-group $RESOURCE_GROUP --vnet-name $VNET_NAME --query [].id --output tsv)
@@ -102,7 +112,7 @@ echo "Created subnet_id: ${SUBNET_ID}"
 
 echo "Creating kubernetes cluster"
 # Create the cluster
-if [ $CREATE_CLUSTER = "TRUE" ]
+if [ "$CREATE_CLUSTER" = "TRUE" ]
 then
 az aks create \
     --name $CLUSTER_NAME \
@@ -117,7 +127,6 @@ az aks create \
     --max-pods $MAX_PODS \
     --location $LOCATION \
     --tags $TAGS
-fi
 
 echo "Getting kubeconfig credentials and changing kubectl current context"
 # Set the cluster as the current context in ~/.kube/config and save to a file for storing as secret in kubernetes (needed for LocalExecutor to launch pods in same cluster)
@@ -139,7 +148,10 @@ kubectl create clusterrolebinding tiller \
                 --clusterrole cluster-admin \
                 --serviceaccount=kube-system:tiller
 helm init --service-account tiller
+fi
 
+if [ "$CREATE_STORAGE_ACCOUNT" = "TRUE" ]
+then
 echo "Creating storage account for dags and logs"
 # Create a storage account for the dags and logs within the resource group
 # The dynamic pvc will create volumes here based on the storage class
@@ -148,7 +160,10 @@ az storage account create \
    --name $STORAGE_ACCOUNT_NAME \
    --location $LOCATION \
    --sku Standard_LRS
+fi
 
+if [ "$CREATE_DATABASE_INSTANCE" = "TRUE" ]
+then
 # Create the airflow database instance and airflow database within it. Uses Azure Resource Manager template in the azure directory
 cp $POSTGRES_PARAMETERS_EXAMPLE_FILE_LOCATION $POSTGRES_PARAMETERS_NEW_FILE_LOCATION
 
@@ -156,8 +171,6 @@ jq ".parameters.serverName.value = \"$POSTGRES_DATABASE_INSTANCE_NAME\"" $POSTGR
 jq ".parameters.location.value = \"$LOCATION\"" $POSTGRES_PARAMETERS_NEW_FILE_LOCATION > tmp.json && mv tmp.json $POSTGRES_PARAMETERS_NEW_FILE_LOCATION
 jq ".parameters.administratorLogin.value = \"$AIRFLOW_ADMIN_NAME\"" $POSTGRES_PARAMETERS_NEW_FILE_LOCATION > tmp.json && mv tmp.json $POSTGRES_PARAMETERS_NEW_FILE_LOCATION
 
-if [ $CREATE_DATABASE_INSTANCE = "TRUE" ]
-then
 echo "Creating database instance"
 az group deployment create \
   --resource-group $RESOURCE_GROUP \
@@ -166,11 +179,15 @@ az group deployment create \
   --parameters administratorLoginPassword=$POSTGRES_ADMIN_PASSWORD
 fi
 
+
+if [ "$CREATE_AIRFLOW_DATABASE" = "TRUE" ]
+then
 echo "Creating airflow database"
 az postgres db create \
   --name $POSTGRES_AIRFLOW_DATABASE_NAME \
   --resource-group $RESOURCE_GROUP \
   --server-name $POSTGRES_DATABASE_INSTANCE_NAME
+fi
 
 echo "Enabling sql service on subnet"
 # Enable the sql service on the vnet
@@ -194,6 +211,7 @@ done
 
 echo "Creating vnet rule on postgres to whitelist cluster nodes"
 # Create the vnet rule to allow the cluster nodes to access postgres
+
 az postgres server vnet-rule create \
   --name $CLUSTER_NAME \
   --resource-group $RESOURCE_GROUP \
@@ -209,9 +227,9 @@ POSTGRES_SERVICE=$(az postgres server show --name $POSTGRES_DATABASE_INSTANCE_NA
 
 SQL_ALCHEMY_CONN=postgresql+psycopg2://$AIRFLOW_ADMIN_NAME@$POSTGRES_DATABASE_INSTANCE_NAME:$POSTGRES_ADMIN_PASSWORD@$POSTGRES_SERVICE:$POSTGRES_PORT/$POSTGRES_AIRFLOW_DATABASE_NAME?sslmode=verify-full
 
-if [ $NAMESPACE != "default" ]
+if [ "$AIRFLOW_NAMESPACE" != "default" ]
 then
-kubectl create namespace $NAMESPACE
+kubectl create namespace $AIRFLOW_NAMESPACE
 fi
 
 kubectl create secret generic airflow \
