@@ -17,7 +17,7 @@ spec:
   # so that the default storage class won't be used, see
   # https://kubernetes.io/docs/concepts/storage/persistent-volumes/#class-1
   # https://cloud.google.com/kubernetes-engine/docs/concepts/persistent-volumes
-  storageClassName: ""
+  storageClassName: hostpath
   accessModes:
   # accessModes do not enforce access right, but rather act as labels to match a PV to a PVC.
     - "ReadOnlyMany"

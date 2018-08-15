@@ -22,7 +22,7 @@ local:
   enabled: false
   createLogPVC: true
   createDagPVC: true
-  dagFolder: /Users/Eamon/kubernetes/airflow-GKE-k8sExecutor-helm/dags
+  dagFolder: /tmp/airflowDags
   logFolder: /tmp/airflowLogs
 
 createWorkerRBAC: true
@@ -94,7 +94,7 @@ airflowCfg:
     parallelism: 32
     dagConcurrency: 16
   scheduler:
-    schedulerHeartbeatSec: 5
+    schedulerHeartbeatSec: 10
     maxThreads: 2
     serviceAccountName: airflow-rbac
   kubernetes:

@@ -20,4 +20,6 @@ spec:
   - ReadOnlyMany
   hostPath:
     path: {{ .Values.local.dagFolder }}
+    type: ""
+  storageClassName: hostpath
 {{- end -}}
