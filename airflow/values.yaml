@@ -18,6 +18,12 @@ azure:
   createDagPVC: true
   storageAccountName: squarerouteairflow
 
+local:
+  enabled: false
+  createLogPVC: true
+  createDagPVC: true
+  dagFolder: /Users/Eamon/kubernetes/airflow-GKE-k8sExecutor-helm/dags
+  logFolder: /tmp/airflowLogs
 
 createWorkerRBAC: true
 installPostgresService: true

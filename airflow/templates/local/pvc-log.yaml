@@ -1,0 +1,27 @@
+{{- if and .Values.local.enabled .Values.logVolume.installPVC -}}
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  annotations:
+    "helm.sh/hook": pre-install
+    "helm.sh/hook-weight": "-35"
+  name: {{ .Values.webScheduler.logsVolumeClaim }}
+  labels:
+    app.kubernetes.io/name: {{ template "airflow.name" . }}
+    app: {{ template "airflow.name" . }}
+    chart: {{ template "airflow.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  # It's necessary to specify "" as the storageClassName
+  # so that the default storage class won't be used, see
+  # https://kubernetes.io/docs/concepts/storage/persistent-volumes/#class-1
+  # https://cloud.google.com/kubernetes-engine/docs/concepts/persistent-volumes
+  storageClassName: ""
+  accessModes:
+    - "ReadWriteMany"
+  volumeName: {{ .Values.webScheduler.logsVolumeClaim }}
+  resources:
+    requests:
+      storage: {{ .Values.logVolume.size }}
+{{- end -}}

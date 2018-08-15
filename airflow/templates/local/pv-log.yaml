@@ -1,0 +1,23 @@
+{{- if and .Values.local.enabled .Values.logVolume.installPV -}}
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  annotations:
+    "helm.sh/hook": pre-install
+    "helm.sh/hook-weight": "-40"
+  name: {{ .Values.webScheduler.logsVolumeClaim }}
+  labels:
+    app.kubernetes.io/name: {{ template "airflow.name" . }}
+    app: {{ template "airflow.name" . }}
+    chart: {{ template "airflow.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  capacity:
+    storage: {{ .Values.logVolume.size }}
+  persistentVolumeReclaimPolicy: Retain
+  accessModes:
+  - ReadWriteMany
+  hostPath:
+    path: {{ .Values.local.logFolder }}
+{{- end -}}

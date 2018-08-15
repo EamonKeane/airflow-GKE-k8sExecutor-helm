@@ -61,7 +61,7 @@ SUBNET_ADDRESS_PREFIX=172.19.0.0/16
 # https://docs.microsoft.com/en-us/cli/azure/aks?view=azure-cli-latest#az-aks-create
 CLUSTER_NAME=$RESOURCE_GROUP
 NODE_OSDISK_SIZE=100
-KUBERNETES_VERSION=1.10.5
+KUBERNETES_VERSION=1.11.1
 TAGS="client=squareroute environment=develop"
 AIRFLOW_WORKER_NODE_LABEL_SELECTORS="airflow=airflow_workers pool=preemptible"
 MAX_PODS=30
