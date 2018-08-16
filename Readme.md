@@ -607,3 +607,10 @@ helm upgrade \
     airflow \
     airflow
 ```
+
+# To download the chart and install remotely
+
+```bash
+helm install --name airflow \
+https://github.com/EamonKeane/airflow-GKE-k8sExecutor-helm/raw/master/airflow-0.1.0.tgz
+```
