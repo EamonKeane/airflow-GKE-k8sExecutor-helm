@@ -1,3 +1,20 @@
+namespace: default
+
+google:
+  enabled: False
+azure:
+  enabled: False
+
+local:
+  enabled: true
+  createLogPVC: true
+  createDagPVC: true
+  dagFolder: 
+  logFolder: 
+
+# Leave dag subpath empty as it's not an NFS subdirectory
+dagVolume:
+  dagSubPath: 
 webScheduler: 
   web:
     name: web
@@ -16,3 +33,7 @@ webScheduler:
       requests:
         cpu: 100m
         memory: 100Mi
+
+airflowCfg:
+  kubernetes:
+    namespace: default
