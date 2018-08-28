@@ -1,21 +1,11 @@
 #! /usr/bin/env bash
-set -e
+set -Eeuxo pipefail
 
-kubectl --namespace kube-system create serviceaccount tiller
+kubectl --namespace kube-system create serviceaccount tiller || true
 kubectl create clusterrolebinding tiller \
                 --clusterrole cluster-admin \
-                --serviceaccount=kube-system:tiller
-helm init --service-account tiller
-
-# This can take some time to activate, so sleep for a while.
-echo "waiting for tiler pod to initialise"
-
-secs=$((20))
-while [ $secs -gt 0 ]; do
-   echo -ne "$secs\033[0K\r"
-   sleep 1
-   : $((secs--))
-done
+                --serviceaccount=kube-system:tiller || true
+helm init --upgrade --wait --service-account tiller || true
 
 AIRFLOW_NAMESPACE=default
 
@@ -63,7 +53,7 @@ kubectl create secret generic airflow \
     --namespace=$AIRFLOW_NAMESPACE \
     --from-literal=fernet-key=$FERNET_KEY \
     --from-literal=sql_alchemy_conn=$SQL_ALCHEMY_CONN \
-    --from-file=kubeconfig=$KUBECONFIG_FILE_OUTPUT
+    --from-file=kubeconfig=$KUBECONFIG_FILE_OUTPUT || true
 
 # Label the docker node the same as the workers will have in your dags in staging/production
 
