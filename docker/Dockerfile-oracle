@@ -10,6 +10,7 @@ LABEL maintainer="Puckel_"
 # Never prompts the user for choices on installation/configuration of packages
 ENV DEBIAN_FRONTEND noninteractive
 ENV TERM linux
+ENV SLUGIFY_USES_TEXT_UNIDECODE=yes
 
 # Airflow
 ARG AIRFLOW_VERSION=2.0.0dev
@@ -62,7 +63,7 @@ RUN set -ex \
     && pip install kubernetes \
     && pip install cryptography \
     && pip install psycopg2 \
-    && pip install git+https://github.com/apache/incubator-airflow#egg=apache-airflow \
+    && pip install git+https://github.com/apache/incubator-airflow.git@afe857fc4d16e5a5e3df26f55fdacb5a4eaf4655#egg=apache-airflow \
     && apt-get purge --auto-remove -yqq $buildDeps \
     && apt-get autoremove -yqq --purge \
     && apt-get clean \
