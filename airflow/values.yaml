@@ -169,6 +169,7 @@ webScheduler:
     dagVolumeReadOnly: False
     serviceAccountName: airflow-rbac
     kubeconfigMountPath: /root/airflow/kubeconfig
+    catchupByDefault: False
   preHook:
     # This performs the migrations and runs before any new deployment or upgrade
     install: true
