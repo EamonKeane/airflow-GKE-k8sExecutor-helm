@@ -568,5 +568,18 @@ helm upgrade \
 
 ```bash
 helm install --name airflow \
-https://github.com/EamonKeane/airflow-GKE-k8sExecutor-helm/raw/master/airflow-0.1.0.tgz
+https://github.com/EamonKeane/airflow-GKE-k8sExecutor-helm/raw/master/airflow-0.1.3.tgz
+```
+
+# To fully delete a dag
+
+```bash
+DAG_FILE=airflow-log-cleanup.py
+NFS_VM=airflow-vm
+gcloud compute ssh $NFS_VM -- rm -f /airflow/dags/$DAG_FILE
+
+DAG_ID=airflow-log-cleanup
+NAMESPACE=airflow
+export POD_NAME=$(kubectl get pods --namespace $NAMESPACE -l "app=airflow,tier=web" -o jsonpath="{.items[0].metadata.name}")
+kubectl exec -it --namespace $NAMESPACE $POD_NAME -- curl -X "DELETE" http://127.0.0.1:8080/api/experimental/dags/$DAG_ID
 ```
