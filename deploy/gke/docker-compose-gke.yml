@@ -1,0 +1,14 @@
+version: '2.1'
+services:
+    gke-deploy:
+        build:
+          context: .
+          dockerfile: Dockerfile
+        entrypoint: 
+          - /bin/bash
+          - -c
+          - gcloud auth activate-service-account --key-file=/secrets/$AIRFLOW_SERVICE_ACCOUNT.json &&
+            /deploy/gke/gke-sql-deploy.sh --values-file=/deploy/gke/infra-$CLOUDSDK_CORE_PROJECT-values.json
+        volumes:
+          - ../../secrets:/secrets
+          - .:/deploy/gke

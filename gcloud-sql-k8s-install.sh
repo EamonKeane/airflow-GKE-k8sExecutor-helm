@@ -1,26 +1,8 @@
 #!/usr/bin/env bash
-# Requires the following dependencies:
-# Gcloud (tested with following configuration):
-    # Google Cloud SDK 207.0.0
-    # beta 2018.06.22
-    # core 2018.06.22
-    # gsutil 4.32 (for creating storage bucket)
-# Openssl (for password generation - tested with LibreSSL 2.2.7)
-# Helm (tested with 2.9.1)
-# Kubectl (Client Version: version.Info{Major:"1", Minor:"11", GitVersion:"v1.11.0", 
-    # GitCommit:"91e7b4fd31fcd3d5f436da26c980becec37ceefe", GitTreeState:"clean", 
-    # BuildDate:"2018-06-27T22:29:25Z", GoVersion:"go1.10.3", Compiler:"gc", 
-    # Platform:"darwin/amd64"}
-set -e
+set -Eeuxo pipefail
 
 #### GLOBAL GCP VARIABLES ####
-PROJECT=
-ACCOUNT=
-REGION=
-GCE_ZONE=
-DATABASE_INSTANCE_NAME=
-CLOUD_FILESTORE_ZONE=
-HIGHLY_AVAILABLE=
+
 
 for i in "$@"
 do

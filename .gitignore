@@ -3,3 +3,4 @@ azure/az-airflow-postgres-parameters.json
 my-azure-values.yaml
 kubeconfig
 dags/__pycache__
+secrets/*
