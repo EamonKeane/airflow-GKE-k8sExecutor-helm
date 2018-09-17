@@ -27,7 +27,7 @@ The cluster-install script used by docker-compose does the following:
 * Creates a `FERNET_KEY` and `SQL_ALCHEMY_CONN` k8s secret for airflow (also saved in secrets/airflow)
 * Creates an `NFS` disk on `GCP` to allow for mounting by multiple airflow pods
 * Installs airflow with helm (this contains an `NFS` server)
-* Copies the `/dags` folder to the `NFS` server
+* Copies the `dags` folder to the `NFS` server
 
 ```bash
 docker-compose -f deploy/gke/docker-compose-gke.yml up
