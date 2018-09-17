@@ -113,10 +113,10 @@ webScheduler:
     name: web
     resources:
       limits:
-        cpu: 1000m
+        cpu: 500m
         memory: 1Gi
       requests:
-        cpu: 1000m
+        cpu: 500m
         memory: 1Gi
     # If setting authenticate to true, create a secret of the form:
     # kubectl create secret generic google-oauth \
@@ -139,10 +139,10 @@ webScheduler:
     name: scheduler
     resources:
       limits:
-        cpu: 1000m
+        cpu: 500m
         memory: 1Gi
       requests:
-        cpu: 1000m
+        cpu: 500m
         memory: 1Gi
     dagVolumeReadOnly: False
     serviceAccountName: airflow-rbac
