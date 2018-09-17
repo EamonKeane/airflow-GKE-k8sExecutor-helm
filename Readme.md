@@ -11,7 +11,7 @@ export CLOUDSDK_COMPUTE_ZONE=$(gcloud config get-value compute/zone)
 export AIRFLOW_SERVICE_ACCOUNT=airflow-deploy-svc-account
 ```
 
-The following script creates a service account used by the sdk in the docker pod and also creates a values file for choosing infrastructure parameters (e.g. Cloudsql DB size and k8s cluster size).
+The following script creates a service account used by the sdk in the docker pod and also creates a values file (from the template at `deploy/gke/infra-template-values.json`) for choosing infrastructure parameters (e.g. Cloudsql DB size and k8s cluster size).
 
 ```bash
 ./deploy/gke/create-service-account.sh
