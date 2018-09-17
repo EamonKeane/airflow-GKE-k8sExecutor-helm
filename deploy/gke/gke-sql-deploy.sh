@@ -23,7 +23,11 @@ RESTORE_AIRFLOW_FROM_BACKUP=$(jq -r .RESTORE_AIRFLOW_FROM_BACKUP $VALUES)
 CREATE_AUTOSCALING_POOL=$(jq -r .CREATE_AUTOSCALING_POOL $VALUES)
 
 AIRFLOW_DB_USER=airflow
+AIRFLOW_DB_NAME=airflow
 AIRFLOW_DB_USER_PASSWORD=$(openssl rand -base64 12)
+
+KUBERNETES_POSTGRES_CLOUDSQLPROXY_SERVICE=airflow-postgresql
+KUBERNETES_POSTGRES_CLOUDSQLPROXY_PORT=5432
 
 export CLOUDSDK_CORE_PROJECT=$(jq -r .CLOUDSDK_CORE_PROJECT $VALUES)
 export CLOUDSDK_COMPUTE_REGION=$(jq -r .CLOUDSDK_COMPUTE_REGION $VALUES)
@@ -33,7 +37,7 @@ K8S_CLUSTER_NAME=$(jq -r .K8S_CLUSTER_NAME $VALUES)
 AIRFLOW_BACKUP_INSTANCE=$(jq -r .AIRFLOW_BACKUP_INSTANCE $VALUES)
 
 AIRFLOW_AVAILABILITY_TYPE=$(jq -r .AIRFLOW_AVAILABILITY_TYPE $VALUES)
-AIRFLOW_DATABASE_VERSION=$(jq -r .AIRFLOW_DATABASE_VERSION $VALUES)
+AIRFLOW_DB_VERSION=$(jq -r .AIRFLOW_DB_VERSION $VALUES)
 AIRFLOW_MEMORY=$(jq -r .AIRFLOW_MEMORY $VALUES)
 AIRFLOW_CPU=$(jq -r .AIRFLOW_CPU $VALUES)
 AIRFLOW_STORAGE_SIZE=$(jq -r .AIRFLOW_STORAGE_SIZE $VALUES)
@@ -48,6 +52,10 @@ K8S_AUTOSCALING_NODE_POOL_LABELS=$(jq -r .K8S_AUTOSCALING_NODE_POOL_LABELS $VALU
 K8S_AUTOSCALING_MAX_NODES=$(jq -r .K8S_AUTOSCALING_MAX_NODES $VALUES)
 K8S_AUTOSCALING_MIN_NODES=$(jq -r .K8S_AUTOSCALING_MIN_NODES $VALUES)
 
+CREATE_NFS_DISK=$(jq -r .CREATE_NFS_DISK $VALUES)
+NFS_DISK_SIZE=$(jq -r .NFS_DISK_SIZE $VALUES)
+NFS_DISK_NAME=$(jq -r .NFS_DISK_NAME $VALUES)
+
 if $CREATE_AIRFLOW_DB_INSTANCE
 then
     gcloud sql instances create $AIRFLOW_DB_INSTANCE \
@@ -56,7 +64,7 @@ then
         --availability-type=$AIRFLOW_AVAILABILITY_TYPE \
         --backup-start-time=04:00 \
         --cpu=$AIRFLOW_CPU \
-        --database-version=$AIRFLOW_DATABASE_VERSION \
+        --database-version=$AIRFLOW_DB_VERSION \
         --gce-zone=$CLOUDSDK_COMPUTE_ZONE \
         --maintenance-window-day=MON \
         --maintenance-window-hour=4 \
@@ -91,7 +99,7 @@ gcloud beta container \
     --maintenance-window "04:00"
 
 # Wait for the kubernetes cluster to be ready
-sleep 10
+sleep 30
 
 if $RESTORE_AIRFLOW_FROM_BACKUP
 then
@@ -109,7 +117,7 @@ then
                 --quiet
     fi
 else
-    gcloud sql databases create airflow \
+    gcloud sql databases create $AIRFLOW_DB_NAME \
             --instance=$AIRFLOW_DB_INSTANCE \
             --async
 fi
@@ -143,3 +151,46 @@ then
         --instance=$AIRFLOW_DB_INSTANCE \
         --password=$AIRFLOW_DB_USER_PASSWORD
 fi
+
+kubectl --namespace kube-system create serviceaccount tiller
+kubectl create clusterrolebinding tiller \
+                --clusterrole cluster-admin \
+                --serviceaccount=kube-system:tiller
+helm init --wait --upgrade --service-account tiller
+
+SQL_ALCHEMY_CONN=postgresql+psycopg2://$AIRFLOW_DB_USER:$AIRFLOW_DB_USER_PASSWORD@$KUBERNETES_POSTGRES_CLOUDSQLPROXY_SERVICE:$KUBERNETES_POSTGRES_CLOUDSQLPROXY_PORT/$AIRFLOW_DB_NAME
+
+echo $SQL_ALCHEMY_CONN > /secrets/airflow/sql_alchemy_conn
+# Create the fernet key which is needed to decrypt database the database
+FERNET_KEY=$(dd if=/dev/urandom bs=32 count=1 2>/dev/null | openssl base64)
+echo $FERNET_KEY > /secrets/airflow/fernet-key
+
+kubectl create secret generic airflow \
+    --from-file=fernet-key=/secrets/airflow/fernet-key \
+    --from-file=sql_alchemy_conn=/secrets/airflow/sql_alchemy_conn
+
+if $CREATE_NFS_DISK
+then
+    gcloud compute disks create --size=$NFS_DISK_SIZE $NFS_DISK_NAME || true
+fi
+
+sed -i.bak "s/pdName:.*/pdName: $NFS_DISK_NAME/g" /airflow/values.yaml
+sed -i.bak "s/databaseInstance:.*/databaseInstance: $AIRFLOW_DB_INSTANCE/g" /airflow/values.yaml
+sed -i.bak "s/project:.*/project: $CLOUDSDK_CORE_PROJECT/g" /airflow/values.yaml
+sed -i.bak "s/region:.*/region: $CLOUDSDK_COMPUTE_REGION/g" /airflow/values.yaml
+rm /airflow/values.yaml.bak
+
+helm upgrade \
+    --install \
+    --wait \
+    airflow \
+    airflow
+
+NAMESPACE=default
+NFS_POD_NAME=$(kubectl get pods --namespace $NAMESPACE -l "role=nfs-server" -o jsonpath="{.items[0].metadata.name}")
+kubectl exec -i $NFS_POD_NAME --namespace $NAMESPACE -- /bin/bash -c "mkdir -p /exports/logs;mkdir -p /exports/dags;chmod go+rw /exports/dags;chmod go+rw /exports/logs; ls -ltrah /exports/"
+
+DAGS_FOLDER_LOCAL=/dags
+DAGS_FOLDER_REMOTE=/usr/local/airflow/dags
+SCHEDULER_POD_NAME=$(kubectl get pods --namespace $NAMESPACE -l "app=airflow,tier=scheduler" -o jsonpath="{.items[0].metadata.name}")
+kubectl cp $DAGS_FOLDER_LOCAL $NAMESPACE/$SCHEDULER_POD_NAME:$DAGS_FOLDER_REMOTE

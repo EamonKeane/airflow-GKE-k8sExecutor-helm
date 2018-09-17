@@ -20,7 +20,7 @@ spec:
   storageClassName: ""
   accessModes:
   # accessModes do not enforce access right, but rather act as labels to match a PV to a PVC.
-    - "ReadOnlyMany"
+    - "ReadWriteMany"
   volumeName: {{ .Values.webScheduler.dagsVolumeClaim }}
   resources:
     requests:

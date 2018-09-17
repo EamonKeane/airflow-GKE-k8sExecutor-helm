@@ -15,10 +15,9 @@ metadata:
 spec:
   capacity:
     storage: {{ .Values.dagVolume.size }}
-  persistentVolumeReclaimPolicy: Retain
   accessModes:
-  - ReadOnlyMany
+  - ReadWriteMany
   nfs:
-    server: {{ .Values.dagVolume.nfsServer }}
-    path: {{ .Values.dagVolume.nfsPath }}
+    server: nfs-server.default.svc.cluster.local
+    path: "/"
 {{- end -}}

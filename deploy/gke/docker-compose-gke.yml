@@ -12,3 +12,5 @@ services:
         volumes:
           - ../../secrets:/secrets
           - .:/deploy/gke
+          - ../../airflow:/airflow
+          - ../../dags:/dags

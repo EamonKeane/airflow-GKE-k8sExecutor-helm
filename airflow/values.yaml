@@ -4,10 +4,12 @@ namespace: default
 
 google: 
   enabled: true
-  project: 
-  region: 
-  databaseInstance: airflow
+  project: icabbi-202810
+  region: europe-west2
+  databaseInstance: airflowd
   databaseName: airflow
+  pdName: gce-nfs-disk
+
 
 azure:
   enabled: false
@@ -30,9 +32,7 @@ installPostgresService: true
 installCloudsqlProxyDeploy: true
 
 logVolume:
-  nfsServer: "10.0.0.2"
-  nfsPath: /airflow
-  # e.g dags stored at /airflow/dags
+  # e.g dags stored at /exports/dags
   logSubPath: logs
   # This must be the same of smaller than the size of the PV you created
   size: 10Gi
@@ -40,19 +40,7 @@ logVolume:
   installPVC: true
 
 dagVolume:
-  # Create a singe node NFS filer on Google Cloud Launcher:
-  # https://cloud.google.com/launcher/docs/single-node-fileserver
-  # Alternatively create a filestore:
-  # https://cloud.google.com/filestore/docs/quickstart-gcloud
-  # gcloud beta filestore instances create $CLOUD_FILESTORE_NAME \
-  #   --project=$PROJECT \
-  #   --location=$CLOUD_FILESTORE_LOCATION \
-  #   --tier=$CLOUD_FILESTORE_TIER \
-  #   --file-share=name=$CLOUD_FILESTORE_SHARE_NAME,capacity=$CLOUD_FILESTORE_CAPACITY \
-  #   --network=name=$CLOUD_FILESTORE_NETWORK,reserved-ip-range=$CLOUD_FILESTORE_RESERVED_IP
-  nfsServer: "10.0.0.2"
-  nfsPath: /airflow
-  # e.g dags stored at /airflow/dags
+  # e.g dags stored at /exports/dags
   dagSubPath: dags
   # This must be the same of smaller than the size of the PV you created
   size: 10Gi
@@ -63,11 +51,7 @@ dagVolume:
 #### If not using the install script, create the secret below using the following form:
 # kubectl create secret generic airflow \
 #     --from-literal=fernet-key=$FERNET_KEY \
-#     --from-literal=airflow-postgres-instance=$PROJECT:$REGION:$DATABASE_INSTANCE_NAME:$AIRFLOW_DATABASE_NAME \
 #     --from-literal=sql_alchemy_conn=$SQL_ALCHEMY_CONN \
-#     --from-file=$CLOUDSQL_SERVICE_ACCOUNT.json=$CLOUDSQL_SERVICE_ACCOUNT.json \
-#     --from-file=kubeconfig=$KUBERNETES_KUBECONFIG_SECRET \
-#     --from-literal=gcs-log-folder=gs://$GOOGLE_LOG_STORAGE_BUCKET/
 
 secrets:
   name: airflow
@@ -78,18 +62,12 @@ secrets:
     # In the format: 
     # postgresql+psycopg2://$POSTGRES_USER:$POSTGRES_PASSWORD@$POSTGRES_HOST:$POSTGRES_PORT/$POSTGRES_DB
     sqlAlchemyConn: sql_alchemy_conn
-    # Kubeconfig mounted on the scheduler only. Needed for launching pods 
-    # with the Kubernetes Pod Operator. This needs to be in the legacy certificate format
-    # (enable legacy-authorisation if using GKE, and enable the setting on the client)
-    kubeconfig: kubeconfig
-    cloudSqlCredentials: airflowcloudsql.json
-    gcsLogFolder: "gcs-log-folder"
 
 airflowCfg:
   core:
     dagsFolder: /usr/local/airflow/dags
     remoteLogging: False
-    remoteLogConnId: google_cloud_default
+    remoteLogConnId: 
     executor: KubernetesExecutor
     parallelism: 32
     dagConcurrency: 16
@@ -120,8 +98,8 @@ airflowCfg:
     # https://kubernetes.io/docs/concepts/configuration/assign-pod-node/
   # If you have created a second pool for workers, put the node labels here
   kubernetesNodeSelectors: |-
-    airflow=airflow_workers
-    pool=preemptible
+    # airflow=airflow_workers
+    # pool=preemptible
 
 
 # This section contains values for the pre-install hook, the web and the scheduler deployments
@@ -152,7 +130,7 @@ webScheduler:
     googleAuthSecretClientIDKey: client_id
     googleAuthSecretClientSecretKey: client_secret
     ##
-    dagVolumeReadOnly: True
+    dagVolumeReadOnly: False
     replicaCount: 1
     service:
       type: ClusterIP
@@ -168,7 +146,7 @@ webScheduler:
         memory: 1Gi
     dagVolumeReadOnly: False
     serviceAccountName: airflow-rbac
-    kubeconfigMountPath: /root/airflow/kubeconfig
+    # kubeconfigMountPath: /root/airflow/kubeconfig
     catchupByDefault: False
   preHook:
     # This performs the migrations and runs before any new deployment or upgrade

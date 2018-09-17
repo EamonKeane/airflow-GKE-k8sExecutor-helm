@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # if you have a failed deployment, use this block to delete everything in the airlfow namespace
-AIRFLOW_NAMESPACE=airflow
+AIRFLOW_NAMESPACE=default
 helm del --purge airflow
 kubectl delete service/airflow-postgresql --namespace $AIRFLOW_NAMESPACE
 kubectl delete deployment.apps/airflow-postgresql --force --grace-period=0 --namespace $AIRFLOW_NAMESPACE
@@ -19,6 +19,8 @@ kubectl delete pv airflow-dags --namespace $AIRFLOW_NAMESPACE
 kubectl delete sc azurefile-airflow --namespace $AIRFLOW_NAMESPACE
 kubectl delete clusterroles system:azure-cloud-provider --namespace $AIRFLOW_NAMESPACE
 kubectl delete clusterrolebinding system:azure-cloud-provider --namespace $AIRFLOW_NAMESPACE
+kubectl delete deploy nfs-server
+kubectl delete deploy nfs-svc
 #####
 
 ## To delete stuck pod:
