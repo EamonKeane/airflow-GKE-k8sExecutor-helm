@@ -152,6 +152,12 @@ then
         --password=$AIRFLOW_DB_USER_PASSWORD
 fi
 
+if $CREATE_NFS_DISK
+then
+    gcloud compute disks create --size=$NFS_DISK_SIZE $NFS_DISK_NAME
+fi
+
+# Set up the cluster with helm
 kubectl --namespace kube-system create serviceaccount tiller
 kubectl create clusterrolebinding tiller \
                 --clusterrole cluster-admin \
@@ -168,11 +174,6 @@ echo $FERNET_KEY > /secrets/airflow/fernet-key
 kubectl create secret generic airflow \
     --from-file=fernet-key=/secrets/airflow/fernet-key \
     --from-file=sql_alchemy_conn=/secrets/airflow/sql_alchemy_conn
-
-if $CREATE_NFS_DISK
-then
-    gcloud compute disks create --size=$NFS_DISK_SIZE $NFS_DISK_NAME || true
-fi
 
 sed -i.bak "s/pdName:.*/pdName: $NFS_DISK_NAME/g" /airflow/values.yaml
 sed -i.bak "s/databaseInstance:.*/databaseInstance: $AIRFLOW_DB_INSTANCE/g" /airflow/values.yaml

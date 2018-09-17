@@ -1,136 +1,58 @@
 
-# Cost-effective, scalable and stateless airflow
+# 5 minute GKE install
 
-Deploy a highly-available, auto-scaling, stateless airflow cluster with the kubernetes executor and CloudSQL. This also includes an SSL airflow admin page, google Oauth2 login, Cloud Filestore for storing dags and logs and can be completed in under 20 minutes. The monthly fixed cost is approximately $180 at the cheapest to $500/month for a HA version (default installation shown here, $240/month Cloud Filestore minimum), plus $0.015 per vCPU hour <https://cloud.google.com/products/calculator/#id=22a2fecd-fc97-412f-8560-1ce1f70bb44f>:
-
-  Cheapest:
-
-* $30/month for pre-emptible scheduler/web server node
-* $30/month for single node NFS
-* $70/month for 1 core CloudSQL instance
-* $50/month for logs and storage
-
-  Cost per CPU Hour:
-
-* Auto-scaling, pre-emptible `n1-highcpu-4` cost of $30/month, or $40/month assuming 75% utilisation.
-* $40/(730 hours per month * 4 vCPU) = $0.015/vCPU hour
-
-This calculation assumes you have idempotent dags, for non-idempotent dags the cost is circa $0.05/vCPU hour. This compares with approximately $300 + $0.20/(vCPU + DB)hour with Cloud Composer <https://cloud.google.com/composer/pricing>. This tutorial installs on the free Google account ($300 over 12 months). Elasticsearch and Grafana/Prometheus can additionally be installed in a further 10 minutes to view airflow logs and metrics, see [Monitoring and Logging](#Monitoring-and-Logging) (this is an additional circa $100/month for the compute resources).
-
-## Installation instructions
-
-![airflow-gke-deployed](images/airflow-gke.png "Airflow GKE Helm")
-
-Pre-requisites:
-
-* Ensure you have helm (v2.9.1), kubectl (v1.11.0), openssl, gcloud SDK (v208.0.1)
-* Ensure the Cloud SQL Admin API has been enabled on your project (<https://cloud.google.com/sql/docs/mysql/admin-api/>)
-
-Installation instructions:
+The only requirement for the following installation is to have `docker-compose`, `google cloud sdk`  and `jq` installed (the version is not important).
 
 ```bash
-git clone https://github.com/EamonKeane/airflow-GKE-k8sExecutor-helm.git
-cd airflow-GKE-k8sExecutor-helm
+export CLOUDSDK_CORE_ACCOUNT=$(gcloud config get-value core/account)
+export CLOUDSDK_CORE_PROJECT=$(gcloud config get-value core/project)
+export CLOUDSDK_COMPUTE_REGION=$(gcloud config get-value compute/region)
+export CLOUDSDK_COMPUTE_ZONE=$(gcloud config get-value compute/zone)
+export AIRFLOW_SERVICE_ACCOUNT=airflow-deploy-svc-account
 ```
 
-The following script is for GKE and by default installs:
-(for installing on azure see [AKS](#AKS))
-
-* A HA postgres CloudSql instance along with cloudsql service account, airflow database and password
-* A 3-zone regional kubernetes cluster
-* An auto-scaling worker pool for dag tasks (starts at zero, take 2 minutes to spin up when first dag is triggered)
-* A kubernetes secret containing the sql_alchemy_conn, fernet key, gcs-log-folder name, cloudsql service account and the cluster's kubeconfig (for the Kube Pod Operator with local executor)
-* A Cloud Filestore instance
+The following script creates a service account used by the sdk in the docker pod and also creates a values file for choosing infrastructure parameters (e.g. Cloudsql DB size and k8s cluster size).
 
 ```bash
-# NOTE cloud filestore is only available in the following areas, so choose another region as necessary if your currently configured region is not listed
-# asia-eas1, europe-west1, europe-west3, europe-west4, us-central1
-# us-east1, us-west1, us-west2
-ACCOUNT=$(gcloud config get-value core/account)
-PROJECT=$(gcloud config get-value core/project)
-REGION=$(gcloud config get-value compute/region)
-GCE_ZONE=$(gcloud config get-value compute/zone)
-DATABASE_INSTANCE_NAME=airflow
-CLOUD_FILESTORE_ZONE=$(gcloud config get-value compute/region)
-HIGHLY_AVAILABLE=TRUE
-./gcloud-sql-k8s-install.sh \
-    --project=$PROJECT \
-    --account=$ACCOUNT \
-    --gce-zone=$GCE_ZONE \
-    --region=$REGION \
-    --database-instance-name=$DATABASE_INSTANCE_NAME \
-    --cloud-filestore-zone=$CLOUD_FILESTORE_ZONE \
-    --highly-available=$HIGHLY_AVAILABLE
+./deploy/gke/create-service-account.sh
 ```
+
+Make any desired change to the values at `deploy/gke/infra-$CLOUDSDK_CORE_PROJECT-values.json`
+Then proceed to making the cluster.
+
+The cluster-install script used by docker-compose does the following:
+
+* Creates a `Cloudsql` database instance and airflow database
+* Creates a `GKE` cluster
+* Creates a `FERNET_KEY` and `SQL_ALCHEMY_CONN` k8s secret for airflow (also saved in secrets/airflow)
+* Creates an `NFS` disk on `GCP` to allow for mounting by multiple airflow pods
+* Installs airflow with helm (this contains an `NFS` server)
+* Copies the `/dags` folder to the `NFS` server
 
 ```bash
-CLOUD_FILESTORE_IP=$(gcloud beta filestore instances describe airflow \
-                                      --project=$PROJECT \
-                                      --location=$CLOUD_FILESTORE_ZONE \
-                                      --format json | jq .networks[0].ipAddresses[0] --raw-output)
+docker-compose -f deploy/gke/docker-compose-gke.yml up
 ```
 
-For airflow to be able to write to Cloud Filestore, you need to change the permissions on the NFS(<https://cloud.google.com/filestore/docs/quickstart-console>).
-Follow the instructions below [Cloud Filestore Permissions](#Setting-file-permissions-on-Cloud-Filestore):
-
-If not using Cloud Filestore, see below for the installation instructions for installing a Google Cloud [NFS Server](#NFS-Server).
-
-# Setting file permissions on Cloud Filestore
-
-Create a VM to mount the file share and make the required changes.
+When the install has completed, run the commands below to view the web UI.
 
 ```bash
-VM_NAME=change-permissions
-gcloud compute --project=$PROJECT instances create $VM_NAME --zone=$GCE_ZONE
+K8S_CLUSTER_NAME=$(jq -r .K8S_CLUSTER_NAME deploy/gke/infra-$CLOUDSDK_CORE_PROJECT-values.json)
+gcloud container clusters get-credentials $K8S_CLUSTER_NAME
+WEB_POD_NAME=$(kubectl get pods --namespace default -l "app=airflow,tier=web" -o jsonpath="{.items[0].metadata.name}")
+kubectl port-forward $WEB_POD_NAME 8080:8080
 ```
 
-SSH into the machine
-
-```bash
-gcloud compute ssh $VM_NAME --zone=$GCE_ZONE --project=$PROJECT
-```
-
-Copy and paste the following into the terminal:
-
-```bash
-sudo apt-get -y update
-sudo apt-get -y install nfs-common
-```
-
-Then copy and paste the following (substituting your `$CLOUD_FILESTORE_IP` for the ip address):
-
-```bash
-CLOUD_FILESTORE_IP=
-sudo mkdir /mnt/test
-sudo mount $CLOUD_FILESTORE_IP:/airflow /mnt/test
-sudo mkdir /mnt/test/dags
-sudo mkdir /mnt/test/logs
-sudo chmod go+rw /mnt/test/dags
-sudo chmod go+rw /mnt/test/logs
-```
-
-Then delete the VM:
-
-```bash
-gcloud compute instances delete $VM_NAME --zone=$GCE_ZONE --project=$PROJECT
-```
-
-## Install the helm chart
+Make any changes desired to the airflow helm chart and redeply using:
 
 ```bash
 helm upgrade \
     --install \
-    --set google.project=$PROJECT \
-    --set google.region=$REGION \
-    --set dagVolume.nfsServer=$CLOUD_FILESTORE_IP \
-    --set logVolume.nfsServer=$CLOUD_FILESTORE_IP \
+    --wait \
     airflow \
     airflow
 ```
 
-You can change `airflow/airflow.cfg` and re-run the above `helm upgrade --install` command to redeploy the changes. This takes approximately 30 seconds.
-
-Quickly copy the example dags folder here to the NFS by using `kubectl cp`:
+If any changes are made to the dag, quickly copy the example dags folder here to the NFS by using `kubectl cp`:
 
 ```bash
 NAMESPACE=default

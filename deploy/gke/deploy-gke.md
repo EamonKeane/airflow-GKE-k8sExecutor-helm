@@ -12,4 +12,6 @@ export AIRFLOW_SERVICE_ACCOUNT=airflow-deploy-svc-account6
 docker-compose -f deploy/gke/docker-compose-gke.yml up
 K8S_CLUSTER_NAME=$(jq -r .K8S_CLUSTER_NAME deploy/gke/infra-$CLOUDSDK_CORE_PROJECT-values.json)
 gcloud container clusters get-credentials $K8S_CLUSTER_NAME
+WEB_POD_NAME=$(kubectl get pods --namespace default -l "app=airflow,tier=web" -o jsonpath="{.items[0].metadata.name}")
+kubectl port-forward $WEB_POD_NAME 8080:8080
 ```
