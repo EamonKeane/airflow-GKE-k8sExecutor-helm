@@ -4,9 +4,9 @@ namespace: default
 
 google: 
   enabled: true
-  project: icabbi-202810
+  project: 
   region: europe-west2
-  databaseInstance: airflowd
+  databaseInstance: airflow
   databaseName: airflow
   pdName: gce-nfs-disk
 
