@@ -1,7 +1,7 @@
 
 # 5 minute GKE install
 
-The only requirement for the following installation is to have `docker-compose`, `google cloud sdk`  and `jq` installed (the version is not important).
+The only requirement for the following installation is to have `docker-compose`, `google cloud sdk`  and `jq` installed (the version is not important). Run all the commands below in the same shell at the root of this repo.
 
 ```bash
 export CLOUDSDK_CORE_ACCOUNT=$(gcloud config get-value core/account)
@@ -22,8 +22,8 @@ Then proceed to making the cluster.
 
 The cluster-install script used by docker-compose does the following:
 
-* Creates a `Cloudsql` database instance and airflow database
-* Creates a `GKE` cluster
+* Creates a postgres `Cloudsql` database instance and airflow database
+* Creates a `1 node`, `4vCPU`, `GKE` cluster (installs on free account)
 * Creates a `FERNET_KEY` and `SQL_ALCHEMY_CONN` k8s secret for airflow (also saved in secrets/airflow)
 * Creates an `NFS` disk on `GCP` to allow for mounting by multiple airflow pods
 * Installs airflow with helm (this contains an `NFS` server)
