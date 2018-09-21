@@ -4,3 +4,5 @@ my-azure-values.yaml
 kubeconfig
 dags/__pycache__
 secrets/*
+
+!secrets/.gitkeep 
