@@ -1,7 +1,7 @@
 
 # Airflow kubernetes executor
 
-This repo contains scripts to deploy an airflow-ready cluster on GKE, AKS and docker-for-mac. A helm chart is then used to install the k8s-executor and copy over example dags. If you need support for other executors, check out the following chart.
+This repo contains scripts to deploy an airflow-ready cluster (with required secrets and persistent volumes) on GKE, AKS and docker-for-mac. A helm chart is then used to install the k8s-executor and copy over example dags. If you need support for other executors, check out the following chart.
 
 `https://github.com/helm/charts/issues/2591`
 `https://github.com/gsemet/charts/tree/airflow/incubator/airflow`
