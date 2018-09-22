@@ -1,5 +1,12 @@
 
-# 5 minute GKE install
+# Airflow kubernetes executor
+
+This repo contains scripts to deploy an airflow-ready cluster on GKE, AKS and docker-for-mac. A helm chart is then used to install the k8s-executor and copy over example dags. If you need support for other executors, check out the following chart.
+
+`https://github.com/helm/charts/issues/2591`
+`https://github.com/gsemet/charts/tree/airflow/incubator/airflow`
+
+## 5 minute GKE install
 
 The only requirement for the following installation is to have `docker-compose`, `google cloud sdk`  and `jq` installed (the version is not important). Run all the commands below in the same shell at the root of this repo.
 
