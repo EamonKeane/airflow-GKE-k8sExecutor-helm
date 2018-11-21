@@ -1,4 +1,4 @@
-{{- if and .Values.google.enabled .Values.installCloudsqlProxyDeploy -}}
+{{- if and .Values.google.enabled .Values.google.installCloudsqlProxyDeploy -}}
 kind: Deployment
 apiVersion: apps/v1
 metadata:

@@ -1,11 +1,11 @@
-{{- if and .Values.google.enabled .Values.logVolume.installPV -}}
+{{- if and .Values.dagVolume.installPV .Values.nfs.createServer -}}
 apiVersion: v1
 kind: PersistentVolume
 metadata:
   annotations:
     "helm.sh/hook": pre-install
     "helm.sh/hook-weight": "-40"
-  name: {{ .Values.webScheduler.logsVolumeClaim }}
+  name: {{ .Values.webScheduler.dagsVolumeClaim}}
   labels:
     app.kubernetes.io/name: {{ template "airflow.name" . }}
     app: {{ template "airflow.name" . }}
@@ -14,10 +14,10 @@ metadata:
     heritage: {{ .Release.Service }}
 spec:
   capacity:
-    storage: {{ .Values.logVolume.size }}
+    storage: {{ .Values.dagVolume.size }}
   accessModes:
   - ReadWriteMany
   nfs:
-    server: nfs-server.default.svc.cluster.local
+    server: nfs-server.airflow.svc.cluster.local
     path: "/"
 {{- end -}}

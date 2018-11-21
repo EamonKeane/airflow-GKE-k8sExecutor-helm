@@ -4,5 +4,5 @@
     "repoName": "airflow-k8s",
     "helmFolder": "airflow"
   },
-  "buildBranch": "master"
+  "buildBranch": "master | nfs"
 }

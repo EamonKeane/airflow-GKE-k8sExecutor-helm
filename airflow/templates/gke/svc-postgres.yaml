@@ -1,4 +1,4 @@
-{{- if and .Values.google.enabled .Values.installPostgresService -}}
+{{- if and .Values.google.enabled .Values.google.installPostgresService -}}
 kind: Service
 apiVersion: v1
 metadata:

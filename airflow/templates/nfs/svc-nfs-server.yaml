@@ -1,3 +1,4 @@
+{{- if .Values.nfs.createServer -}}
 apiVersion: v1
 kind: Service
 metadata:
@@ -12,3 +13,4 @@ spec:
       port: 111
   selector:
     role: nfs-server
+{{- end -}}

@@ -1,15 +1,22 @@
 # Airflow RBAC service account is installed here, 
 # so ensure that this is changed if using a different namespace
-namespace: default
+namespace: airflow
+
+testEnvironment: true
+
+nfs:
+  createServer: true
+  PVCName: nfs-pvc
+  PVCSize: 100Gi
 
 google: 
-  enabled: true
+  enabled: false
+  installPostgresService: true
+  installCloudsqlProxyDeploy: true
   project: 
   region: europe-west2
   databaseInstance: airflow
   databaseName: airflow
-  pdName: gce-nfs-disk
-
 
 azure:
   enabled: false
@@ -28,8 +35,6 @@ local:
   logFolder: /tmp/airflowLogs
 
 createWorkerRBAC: true
-installPostgresService: true
-installCloudsqlProxyDeploy: true
 
 logVolume:
   # e.g dags stored at /exports/dags
@@ -83,9 +88,9 @@ airflowCfg:
     # There is currently only one templated (airflow-cfg-configmap.yaml). 
     # This is named {{ .Values.webScheduler.airflowCfgConfigMap }}
     airflowConfigmap: airflow-configmap
-    workerContainerRepository: quay.io/eamonkeane/airflow-k8s
-    workerContainerTag: "0.5"
-    namespace: default
+    workerContainerRepository: quay.io/logistio/airflow
+    workerContainerTag: "develop_latest"
+    namespace: airflow
     # Add a list of secrets in the form of ENV_VARIABLE=KUBERNETES_SECRET_NAME=KUBERNETES_SECRET_KEY
     # This is injected into the environment of the Kubernetes Executor workers
   kubernetesSecrets: |-
@@ -155,8 +160,8 @@ webScheduler:
     args: "airflow initdb && alembic upgrade heads"
   installWebServer: true
   installScheduler: true
-  image: quay.io/eamonkeane/airflow-k8s
-  tag: "0.5"
+  image: quay.io/logistio/airflow
+  tag: "develop_latest"
   imagePullPolicy: IfNotPresent
   dagsVolumeClaim: airflow-dags
   logsVolumeClaim: airflow-logs

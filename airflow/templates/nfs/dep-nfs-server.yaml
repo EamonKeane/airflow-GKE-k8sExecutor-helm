@@ -1,3 +1,4 @@
+{{- if and .Values.nfs.createServer -}}
 apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
@@ -32,6 +33,6 @@ spec:
             name: mypvc
       volumes:
         - name: mypvc
-          gcePersistentDisk:
-            pdName: {{ .Values.google.pdName }}
-            fsType: ext4
+          persistentVolumeClaim:
+            claimName: {{ .Values.nfs.PVCName }}
+{{- end -}}
