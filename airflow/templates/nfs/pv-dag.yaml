@@ -18,6 +18,6 @@ spec:
   accessModes:
   - ReadWriteMany
   nfs:
-    server: nfs-server.airflow.svc.cluster.local
+    server: nfs-server.{{ .Values.namespace }}.svc.cluster.local
     path: "/"
 {{- end -}}
