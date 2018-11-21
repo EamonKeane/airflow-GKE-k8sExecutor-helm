@@ -12,6 +12,5 @@ fi
 if [ "$1" = "airflow initdb && alembic upgrade heads" ]
 then
    cd /usr/local/lib/python3.6/site-packages/airflow/
-   airflow initdb && alembic upgrade heads
+   airflow upgradedb && alembic upgrade heads
 fi
-

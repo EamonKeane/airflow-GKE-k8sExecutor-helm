@@ -1,31 +1,23 @@
 #!/usr/bin/groovy
-
-@Library('github.com/EamonKeane/jenkins-pipeline@master')
-
-def pipeline = new io.estrado.Pipeline()
-
-podTemplate(label: 'jenkins-pipeline',
-    containers: [
-        containerTemplate(name: 'jnlp', image: 'lachlanevenson/jnlp-slave:3.10-1-alpine', args: '${computer.jnlpmac} ${computer.name}', 
-        resourceRequestCpu: '200m', resourceLimitCpu: '300m', resourceRequestMemory: '256Mi', resourceLimitMemory: '512Mi')
-    ],
-    volumes:[
-        nfsVolume(mountPath: '/dags', serverAddress: '10.0.0.2', serverPath: '/airflow/dags', readOnly: false),
-    ],
-){
-    node ('jenkins-pipeline') {
-
-        checkout scm;
-        pipeline.gitEnvVars();
-
-        def inputFile = readFile('Jenkinsfile.json')
-        def config = new groovy.json.JsonSlurperClassic().parseText(inputFile)
-        println "pipeline config ==> ${config}"
-        if (env.BRANCH_NAME != "${config.buildBranch}") {
-            println "Stopping the build.";
-            return;
+pipeline {
+  agent {
+    kubernetes {
+      label 'airflow-k8s-executor'
+      yamlFile 'jenkinsPodTemplate.yml'
+    }
+  }
+  stages {
+    stage ('Push Insights-data-py to Chart Museum'){
+      steps{
+        container('gcloud-helm'){
+          //Push chart to chart musuem
+          sh "helm repo add ${config.helm.repoName} ${config.helm.repo}"
+          sh "sed -i.bak 's/tag:.*/tag: ${containerTag}/g' ${config.helm.helmFolder}/values.yaml"
+          sh "sed -i.bak 's/version:.*/version: 0.2.0-$env.BRANCH_NAME-latest/g' ${config.helm.helmFolder}/Chart.yaml"
+          sh "helm push ${config.helm.helmFolder}/ ${config.helm.repoName}"
+          sh "sed -i.bak 's/version:.*/version: 0.2.0-${containerTag}/g' ${config.helm.helmFolder}/Chart.yaml"
+          sh "helm push ${config.helm.helmFolder}/ ${config.helm.repoName}"
         }
-        // Copy the github files
-        sh "cp -a ${WORKSPACE}/${config.githubDagSubFolder}/. ${config.containerDagMountPath}"
-        }
-}
+      }
+    }
+  }
