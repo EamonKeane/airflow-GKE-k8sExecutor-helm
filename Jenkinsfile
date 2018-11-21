@@ -7,6 +7,18 @@ pipeline {
     }
   }
   stages {
+    stage('Checkout code') {
+      steps {
+        container('jnlp'){
+          script{
+            inputFile = readFile('Jenkinsfile.json')
+            config = new groovy.json.JsonSlurperClassic().parseText(inputFile)
+            containerTag = env.BRANCH_NAME + '-' + env.GIT_COMMIT.substring(0, 7)
+            println "pipeline config ==> ${config}"
+          } // script
+        } // container('jnlp')
+      } // steps
+    } // stage
     stage ('Push Insights-data-py to Chart Museum'){
       steps{
         container('gcloud-helm'){
