@@ -19,7 +19,7 @@ pipeline {
         } // container('jnlp')
       } // steps
     } // stage
-    stage ('Push Insights-data-py to Chart Museum'){
+    stage ('Push airflow to Chart Museum'){
       steps{
         container('gcloud-helm'){
           //Push chart to chart musuem
