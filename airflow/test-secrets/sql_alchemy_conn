@@ -1,1 +1,1 @@
-postgresql+psycopg2://airflowuser:airflow@airflow-postgres-postgresql:5432/airflow
+postgresql+psycopg2://airflow:airflow@airflow-postgres-postgresql:5432/airflow
