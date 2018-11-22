@@ -4,7 +4,7 @@ kind: PersistentVolumeClaim
 metadata:
   annotations:
     "helm.sh/hook": pre-install
-    "helm.sh/hook-weight": "-40"
+    "helm.sh/hook-weight": "-200"
   name: {{ .Values.nfs.PVCName }}
   labels:
     app.kubernetes.io/name: {{ template "airflow.name" . }}
