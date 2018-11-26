@@ -20,6 +20,6 @@ spec:
   - ReadWriteMany
   hostPath:
     path: {{ .Values.local.logFolder }}
-    type: ""
+    type: DirectoryOrCreate
   storageClassName: hostpath
 {{- end -}}
