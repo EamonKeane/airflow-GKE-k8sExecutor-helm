@@ -15,7 +15,7 @@ metadata:
 spec:
   capacity:
     storage: {{ .Values.dagVolume.size }}
-  persistentVolumeReclaimPolicy: Retain
+  persistentVolumeReclaimPolicy: Delete
   accessModes:
   - ReadOnlyMany
   hostPath:

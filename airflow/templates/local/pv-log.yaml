@@ -15,7 +15,7 @@ metadata:
 spec:
   capacity:
     storage: {{ .Values.logVolume.size }}
-  persistentVolumeReclaimPolicy: Retain
+  persistentVolumeReclaimPolicy: Delete
   accessModes:
   - ReadWriteMany
   hostPath:
