@@ -2,11 +2,11 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: "prehook"
+  name: "prehook-{{ .Release.Time.Seconds }}"
   annotations:
     "helm.sh/hook": pre-install,pre-upgrade
     "helm.sh/hook-weight": "-5"
-    "helm.sh/hook-delete-policy": "before-hook-creation"
+    "helm.sh/hook-delete-policy": "hook-succeeded"
   labels:
     app.kubernetes.io/name: {{ template "airflow.name" . }}
     app: {{ template "airflow.name" . }}
