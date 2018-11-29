@@ -162,7 +162,7 @@ webScheduler:
   installScheduler: true
   image: quay.io/logistio/airflow
   tag: "develop_latest"
-  imagePullPolicy: IfNotPresent
+  imagePullPolicy: Always
   dagsVolumeClaim: airflow-dags
   logsVolumeClaim: airflow-logs
   dagsMountPath: /usr/local/airflow/dags
