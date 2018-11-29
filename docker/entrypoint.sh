@@ -9,7 +9,7 @@ if [ "$1" = "scheduler" ]
 then
 	exec airflow scheduler
 fi
-if [ "$1" = "airflow initdb && alembic upgrade heads" ]
+if [ "$1" = "airflow upgradedb && alembic upgrade heads" ]
 then
    cd /usr/local/lib/python3.6/site-packages/airflow/
    airflow upgradedb && alembic upgrade heads

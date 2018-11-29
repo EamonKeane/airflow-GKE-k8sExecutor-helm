@@ -157,7 +157,7 @@ webScheduler:
     # This performs the migrations and runs before any new deployment or upgrade
     install: true
     initContainer: true
-    args: "airflow initdb && alembic upgrade heads"
+    args: "airflow upgradedb && alembic upgrade heads"
   installWebServer: true
   installScheduler: true
   image: quay.io/logistio/airflow
