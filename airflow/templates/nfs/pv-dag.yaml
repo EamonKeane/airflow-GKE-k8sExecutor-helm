@@ -15,6 +15,7 @@ metadata:
 spec:
   capacity:
     storage: {{ .Values.dagVolume.size }}
+  persistentVolumeReclaimPolicy: {{ .Values.nfs.reclaimPolicy }}
   accessModes:
   - ReadWriteMany
   nfs:
