@@ -7,7 +7,6 @@ default_args = {
     'owner': 'airflow',
     'depends_on_past': False,
     'start_date': datetime(2018, 7, 27, 13),
-    'email': ['alerts@logistio.ie'],
     'email_on_failure': False,
     'email_on_retry': False,
     'retries': 1,
